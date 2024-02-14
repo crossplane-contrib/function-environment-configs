@@ -1,17 +1,35 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: function-template-go
+  name: function-environment-configs
 spec:
   compositeTypeRef:
     apiVersion: example.crossplane.io/v1
     kind: XR
   mode: Pipeline
   pipeline:
-  - step: run-the-template
+  - step: environmentConfigs
     functionRef:
-      name: function-template-go
+      name: function-environment-configs
     input:
-      apiVersion: template.fn.crossplane.io/v1beta1
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
       kind: Input
-      example: "Hello world"
+      spec:
+        environmentConfigs:
+          - type: Reference
+            ref:
+              name: example-config
+  - step: go-templating
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          ---
+          apiVersion: example.crossplane.io/v1
+          kind: XR
+          status:
+            fromEnv: {{ index .context "apiextensions.crossplane.io/environment" "complex" "c" "d" }}

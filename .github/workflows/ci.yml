@@ -29,8 +29,8 @@ env:
   XPKG_ACCESS_ID: ${{ secrets.XPKG_ACCESS_ID }}
 
   # The package to push, without a version tag. The default matches GitHub. For
-  # example xpkg.upbound.io/crossplane/function-template-go.
-  XPKG: xpkg.upbound.io/${{ github.repository}}
+  # example xpkg.upbound.io/crossplane/function-environment-configs.
+  XPKG: xpkg.upbound.io/crossplane-contrib/function-environment-configs
 
   # The package version to push. The default is 0.0.0-gitsha.
   XPKG_VERSION: ${{ inputs.version }}
