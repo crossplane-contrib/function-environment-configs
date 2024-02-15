@@ -22,7 +22,7 @@ input of this function:
 `spec.environment.policy.resolve` is not supported yet, which results
 effectively in the same behavior as `Always`.
 
-Here's an example:
+Here's an example using [function-go-templating](https://github.com/crossplane-contrib/function-go-templating):
 
 ```yaml
 apiVersion: apiextensions.crossplane.io/v1
@@ -61,6 +61,54 @@ spec:
                  status:
                    fromEnv: {{ index .context "apiextensions.crossplane.io/environment" "complex" "c" "d" }}
 ```
+
+Here is another example using [function-patch-and-transform](https://github.com/crossplane-contrib/function-patch-and-transform):
+
+```yaml
+... same as above ...
+    - step: patch-and-transform
+      # function-patch-and-transform knows it has to look for the environment in the
+      # context at "apiextensions.crossplane.io/environment"
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      environment:
+       patches:
+         # So you can then use it in all your patches:
+         # - Env -> XR
+         - type: ToCompositeFieldPath
+           fromFieldPath: "someFieldInTheEnvironment"
+           toFieldPath: "status.someFieldFromTheEnvironment"
+         # - XR -> Env
+         - type: FromCompositeFieldPath
+           fromFieldPath: "spec.someFieldInTheXR"
+           toFieldPath: "someFieldFromTheXR"
+       resources:
+         - name: bucket
+           base:
+             apiVersion: s3.aws.upbound.io/v1beta1
+             kind: Bucket
+             spec:
+               forProvider:
+                 region: us-east-2
+           patches:
+             # - Env -> Resource
+             - type: FromEnvironmentFieldPath
+               fromFieldPath: "someFieldInTheEnvironment"
+               toFieldPath: "spec.forProvider.someFieldFromTheEnvironment"
+             # - Resource -> Env
+             - type: ToEnvironmentFieldPath
+               fromFieldPath: "status.someOtherFieldInTheResource"
+               toFieldPath: "someOtherFieldInTheEnvironment"
+         # the environment will be passed to the next function in the pipeline
+         # as part of the context
+```
+
+This diagram shows what part of the usual Composition is replaced by this
+function and how it fits with other functions:
+![diagram.png](diagram.png)
 
 ## Using this function
 
