@@ -3,4 +3,6 @@ apiVersion: meta.pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
   name: function-environment-configs
-spec: {}
+spec:
+  crossplane:
+    version: ">=v1.15.0"
