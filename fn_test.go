@@ -522,6 +522,121 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"PolicyResolution": {
+			reason: "The Function should ignore EnvironmentConfigs that are not found when policy resolution is Optional",
+			args: args{
+				req: &fnv1beta1.RunFunctionRequest{
+					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1beta1.State{
+						Composite: &fnv1beta1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"existingEnvSelectorLabel": "someMoreBar"
+								}
+							}`),
+						},
+					},
+					ExtraResources: map[string]*fnv1beta1.Resources{
+						"environment-config-0": {},
+						"environment-config-1": {},
+						"environment-config-2": {},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"policy": {
+								"resolution": "Optional"
+							},
+							"environmentConfigs": [
+								{	
+									"type": "Reference",
+									"ref": {	
+										"name": "my-env-config"
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Multiple",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo",
+												"value": "bar"
+											}
+										]
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo2",
+												"value": "bar2"
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1beta1.RunFunctionResponse{
+					Meta:    &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1beta1.Result{},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment"
+							}`)),
+						},
+					},
+					Requirements: &fnv1beta1.Requirements{
+						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchName{
+									MatchName: "my-env-config",
+								},
+							}, "environment-config-1": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1beta1.MatchLabels{
+										Labels: map[string]string{
+											"foo": "bar",
+										},
+									},
+								},
+							}, "environment-config-2": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1beta1.MatchLabels{
+										Labels: map[string]string{
+											"foo2": "bar2",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {

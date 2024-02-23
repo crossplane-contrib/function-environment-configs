@@ -139,11 +139,11 @@ func getSelectedEnvConfigs(in *v1beta1.Input, extraResources map[string][]resour
 		if !ok {
 			return nil, errors.Errorf("cannot find expected extra resource %q", extraResName)
 		}
+		if len(resources) == 0 && in.Spec.Policy.IsResolutionPolicyOptional() {
+			continue
+		}
 		switch config.GetType() {
 		case v1beta1.EnvironmentSourceTypeReference:
-			if len(resources) == 0 && in.Spec.Policy.IsResolutionPolicyOptional() {
-				continue
-			}
 			if len(resources) > 1 {
 				return nil, errors.Errorf("expected exactly one extra resource %q, got %d", extraResName, len(resources))
 			}
