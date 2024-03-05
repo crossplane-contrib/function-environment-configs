@@ -3,6 +3,21 @@ apiVersion: meta.pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
   name: function-environment-configs
+  annotations:
+    meta.crossplane.io/maintainer: Crossplane Maintainers <info@crossplane.io>
+    meta.crossplane.io/source: github.com/crossplane-contrib/function-environment-configs
+    meta.crossplane.io/license: Apache-2.0
+    meta.crossplane.io/description: |
+      A composition function that can retrieve and merge EnvironmentConfigs
+      into the Context.
+    meta.crossplane.io/readme: |
+      This composition function retrives EnvironmentConfigs and merge them in
+      the specified order into the Context at a well-known key,
+      apiextensions.crossplane.io/environment, a.k.a. the in-memory environment
+      as expected by function-patch-and-transform and potentially other
+      functions. Reimplements almost fully the same exact functionality
+      available in core Crossplane via Compositions'
+      spec.environment.environmentConfigs.
 spec:
   crossplane:
     version: ">=v1.15.0"
