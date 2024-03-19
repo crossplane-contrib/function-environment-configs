@@ -72,37 +72,37 @@ Here is another example using [function-patch-and-transform](https://github.com/
         name: function-patch-and-transform
       input:
         apiVersion: pt.fn.crossplane.io/v1beta1
-      kind: Resources
-      environment:
-       patches:
-         # So you can then use it in all your patches:
-         # - Env -> XR
-         - type: ToCompositeFieldPath
-           fromFieldPath: "someFieldInTheEnvironment"
-           toFieldPath: "status.someFieldFromTheEnvironment"
-         # - XR -> Env
-         - type: FromCompositeFieldPath
-           fromFieldPath: "spec.someFieldInTheXR"
-           toFieldPath: "someFieldFromTheXR"
-       resources:
-         - name: bucket
-           base:
-             apiVersion: s3.aws.upbound.io/v1beta1
-             kind: Bucket
-             spec:
-               forProvider:
-                 region: us-east-2
-           patches:
-             # - Env -> Resource
-             - type: FromEnvironmentFieldPath
-               fromFieldPath: "someFieldInTheEnvironment"
-               toFieldPath: "spec.forProvider.someFieldFromTheEnvironment"
-             # - Resource -> Env
-             - type: ToEnvironmentFieldPath
-               fromFieldPath: "status.someOtherFieldInTheResource"
-               toFieldPath: "someOtherFieldInTheEnvironment"
-         # the environment will be passed to the next function in the pipeline
-         # as part of the context
+        kind: Resources
+        environment:
+         patches:
+           # So you can then use it in all your patches:
+           # - Env -> XR
+           - type: ToCompositeFieldPath
+             fromFieldPath: "someFieldInTheEnvironment"
+             toFieldPath: "status.someFieldFromTheEnvironment"
+           # - XR -> Env
+           - type: FromCompositeFieldPath
+             fromFieldPath: "spec.someFieldInTheXR"
+             toFieldPath: "someFieldFromTheXR"
+         resources:
+           - name: bucket
+             base:
+               apiVersion: s3.aws.upbound.io/v1beta1
+               kind: Bucket
+               spec:
+                 forProvider:
+                   region: us-east-2
+             patches:
+               # - Env -> Resource
+               - type: FromEnvironmentFieldPath
+                 fromFieldPath: "someFieldInTheEnvironment"
+                 toFieldPath: "spec.forProvider.someFieldFromTheEnvironment"
+               # - Resource -> Env
+               - type: ToEnvironmentFieldPath
+                 fromFieldPath: "status.someOtherFieldInTheResource"
+                 toFieldPath: "someOtherFieldInTheEnvironment"
+           # the environment will be passed to the next function in the pipeline
+           # as part of the context
 ```
 
 This diagram shows what part of the usual Composition is replaced by this
