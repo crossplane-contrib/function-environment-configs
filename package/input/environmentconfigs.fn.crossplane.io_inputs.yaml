@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: inputs.environmentconfigs.fn.crossplane.io
 spec:
   group: environmentconfigs.fn.crossplane.io
@@ -22,44 +22,57 @@ spec:
         description: Input can be used to provide input to this Function.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
-            description: An InputSpec specifies the environment for rendering composed
+            description: |-
+              An InputSpec specifies the environment for rendering composed
               resources.
             properties:
               defaultData:
                 additionalProperties:
                   x-kubernetes-preserve-unknown-fields: true
-                description: DefaultData statically defines the initial state of the
-                  environment. It has the same schema-less structure as the data field
-                  in environment configs. It is overwritten by the selected environment
-                  configs.
+                description: |-
+                  DefaultData statically defines the initial state of the environment.
+                  It has the same schema-less structure as the data field in
+                  environment configs.
+                  It is overwritten by the selected environment configs.
                 type: object
               environmentConfigs:
-                description: "EnvironmentConfigs selects a list of `EnvironmentConfig`s.
-                  The resolved resources are stored in the composite resource at `spec.environmentConfigRefs`
-                  and is only updated if it is null. \n The list of references is
-                  used to compute an in-memory environment at compose time. The data
-                  of all object is merged in the order they are listed, meaning the
-                  values of EnvironmentConfigs with a larger index take priority over
-                  ones with smaller indices. \n The computed environment can be accessed
-                  in a composition using `FromEnvironmentFieldPath` and `CombineFromEnvironment`
-                  patches."
+                description: |-
+                  EnvironmentConfigs selects a list of `EnvironmentConfig`s. The resolved
+                  resources are stored in the composite resource at
+                  `spec.environmentConfigRefs` and is only updated if it is null.
+
+
+                  The list of references is used to compute an in-memory environment at
+                  compose time. The data of all object is merged in the order they are
+                  listed, meaning the values of EnvironmentConfigs with a larger index take
+                  priority over ones with smaller indices.
+
+
+                  The computed environment can be accessed in a composition using
+                  `FromEnvironmentFieldPath` and `CombineFromEnvironment` patches.
                 items:
                   description: EnvironmentSource selects a EnvironmentConfig resource.
                   properties:
                     ref:
-                      description: Ref is a named reference to a single EnvironmentConfig.
+                      description: |-
+                        Ref is a named reference to a single EnvironmentConfig.
                         Either Ref or Selector is required.
                       properties:
                         name:
@@ -75,21 +88,20 @@ spec:
                           description: MatchLabels ensures an object with matching
                             labels is selected.
                           items:
-                            description: An EnvironmentSourceSelectorLabelMatcher
-                              acts like a k8s label selector but can draw the label
-                              value from a different path.
+                            description: |-
+                              An EnvironmentSourceSelectorLabelMatcher acts like a k8s label selector but
+                              can draw the label value from a different path.
                             properties:
                               fromFieldPathPolicy:
                                 default: Required
-                                description: FromFieldPathPolicy specifies the policy
-                                  for the valueFromFieldPath. The default is Required,
-                                  meaning that an error will be returned if the field
-                                  is not found in the composite resource. Optional
-                                  means that if the field is not found in the composite
-                                  resource, that label pair will just be skipped.
-                                  N.B. other specified label matchers will still be
-                                  used to retrieve the desired environment config,
-                                  if any.
+                                description: |-
+                                  FromFieldPathPolicy specifies the policy for the valueFromFieldPath.
+                                  The default is Required, meaning that an error will be returned if the
+                                  field is not found in the composite resource.
+                                  Optional means that if the field is not found in the composite resource,
+                                  that label pair will just be skipped. N.B. other specified label
+                                  matchers will still be used to retrieve the desired
+                                  environment config, if any.
                                 enum:
                                 - Optional
                                 - Required
@@ -143,8 +155,9 @@ spec:
                       type: object
                     type:
                       default: Reference
-                      description: Type specifies the way the EnvironmentConfig is
-                        selected. Default is `Reference`
+                      description: |-
+                        Type specifies the way the EnvironmentConfig is selected.
+                        Default is `Reference`
                       enum:
                       - Reference
                       - Selector
@@ -152,28 +165,20 @@ spec:
                   type: object
                 type: array
               policy:
-                description: Policy represents the Resolve and Resolution policies
-                  which apply to all EnvironmentSourceReferences in EnvironmentConfigs
-                  list.
+                description: |-
+                  Policy represents the Resolution policy which apply to all
+                  EnvironmentSourceReferences in EnvironmentConfigs list.
                 properties:
                   resolution:
                     default: Required
-                    description: Resolution specifies whether resolution of this reference
-                      is required. The default is 'Required', which means the reconcile
-                      will fail if the reference cannot be resolved. 'Optional' means
-                      this reference will be a no-op if it cannot be resolved.
+                    description: |-
+                      Resolution specifies whether resolution of this reference is required.
+                      The default is 'Required', which means the reconcile will fail if the
+                      reference cannot be resolved. 'Optional' means this reference will be
+                      a no-op if it cannot be resolved.
                     enum:
                     - Required
                     - Optional
-                    type: string
-                  resolve:
-                    description: Resolve specifies when this reference should be resolved.
-                      The default is 'IfNotPresent', which will attempt to resolve
-                      the reference only when the corresponding field is not present.
-                      Use 'Always' to resolve the reference on every reconcile.
-                    enum:
-                    - Always
-                    - IfNotPresent
                     type: string
                 type: object
             type: object
