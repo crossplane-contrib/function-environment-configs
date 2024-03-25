@@ -157,7 +157,7 @@ func (in *InputSpec) DeepCopyInto(out *InputSpec) {
 	}
 	if in.Policy != nil {
 		in, out := &in.Policy, &out.Policy
-		*out = new(commonv1.Policy)
+		*out = new(Policy)
 		(*in).DeepCopyInto(*out)
 	}
 }

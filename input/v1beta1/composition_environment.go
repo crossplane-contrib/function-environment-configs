@@ -45,13 +45,13 @@ type InputSpec struct {
 	// +optional
 	EnvironmentConfigs []EnvironmentSource `json:"environmentConfigs,omitempty"`
 
-	// Policy represents the Resolve and Resolution policies which apply to
-	// all EnvironmentSourceReferences in EnvironmentConfigs list.
+	// Policy represents the Resolution policy which apply to all
+	// EnvironmentSourceReferences in EnvironmentConfigs list.
 	// +optional
-	Policy *xpv1.Policy `json:"policy,omitempty"`
+	Policy *Policy `json:"policy,omitempty"`
 }
 
-// Policy represents the Resolve and Resolution policies of Reference instance.
+// Policy represents the Resolution policy of Reference instance.
 type Policy struct {
 	// Resolve specifies when this reference should be resolved. The default
 	// is 'IfNotPresent', which will attempt to resolve the reference only when
@@ -73,6 +73,16 @@ type Policy struct {
 	// +kubebuilder:default=Required
 	// +kubebuilder:validation:Enum=Required;Optional
 	Resolution *xpv1.ResolutionPolicy `json:"resolution,omitempty"`
+}
+
+// IsResolutionPolicyOptional checks whether the resolution policy of relevant
+// reference is Optional.
+func (p *Policy) IsResolutionPolicyOptional() bool {
+	if p == nil || p.Resolution == nil {
+		return false
+	}
+
+	return *p.Resolution == xpv1.ResolutionPolicyOptional
 }
 
 // EnvironmentSourceType specifies the way the EnvironmentConfig is selected.
