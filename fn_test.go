@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -401,6 +401,65 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"RequestEnvironmentConfigsNotFoundRequired": {
+			reason: "The Function should return fatal if a required EnvironmentConfig is not found",
+			args: args{
+				req: &fnv1beta1.RunFunctionRequest{
+					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1beta1.State{
+						Composite: &fnv1beta1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								}
+							}`),
+						},
+					},
+					ExtraResources: map[string]*fnv1beta1.Resources{
+						"environment-config-0": {
+							Items: []*fnv1beta1.Resource{},
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{	
+									"type": "Reference",
+									"ref": {	
+										"name": "my-env-config"
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1beta1.RunFunctionResponse{
+					Meta: &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1beta1.Result{
+						{
+							Severity: fnv1beta1.Severity_SEVERITY_FATAL,
+						},
+					},
+					Requirements: &fnv1beta1.Requirements{
+						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchName{
+									MatchName: "my-env-config",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 		"MergeEnvironmentConfigs": {
 			reason: "The Function should merge the provided EnvironmentConfigs",
 			args: args{
@@ -529,7 +588,22 @@ func TestRunFunction(t *testing.T) {
 			f := &Function{log: logging.NewNopLogger()}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 
-			if diff := cmp.Diff(tc.want.rsp, rsp, protocmp.Transform()); diff != "" {
+			diff := cmp.Diff(tc.want.rsp, rsp, cmpopts.AcyclicTransformer("toJsonWithoutResultMessages", func(r *fnv1beta1.RunFunctionResponse) []byte {
+				// We don't care about messages.
+				// cmptopts.IgnoreField wasn't working with protocmp.Transform
+				// We can't split this to another transformer as
+				// transformers are applied not in order but as soon as they
+				// match the type, which are walked from the root (RunFunctionResponse).
+				for _, result := range r.Results {
+					result.Message = ""
+				}
+				out, err := protojson.Marshal(r)
+				if err != nil {
+					t.Fatalf("cannot marshal %T to JSON: %s", r, err)
+				}
+				return out
+			}))
+			if diff != "" {
 				t.Errorf("%s\nf.RunFunction(...): -want rsp, +got rsp:\n%s", tc.reason, diff)
 			}
 
