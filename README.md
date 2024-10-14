@@ -7,7 +7,8 @@
 > later. It will not work with earlier versions.
 
 > [!IMPORTANT]  
-> This function is meant to replace native Composition Environment
+> This function is meant to replace native 
+> [Composition Environment][upstream-docs-environment-configs]
 > (`--enable-environment-configs`), see
 > [below](#migration-from-native-composition-environment) for more details.
 
@@ -17,9 +18,28 @@ computed `environment` into the `Context` at a well-known key,
 `apiextensions.crossplane.io/environment`, so that other functions such as
 [function-patch-and-transform] can access it.
 
-## Examples
+## Using this function
 
-See [example](./example/) folder.
+See the [example](example) directory for examples that you can run locally using
+the Crossplane CLI:
+
+```shell
+$ crossplane beta render \
+  --extra-resources example/environmentConfigs.yaml \
+  --include-context \
+  example/xr.yaml example/composition.yaml example/functions.yaml
+```
+
+To validate the rendered output, you can use the `crossplane beta validate` command:
+```shell
+$ crossplane beta render \
+  --extra-resources example/environmentConfigs.yaml \
+  --include-full-xr \
+  example/xr.yaml example/composition.yaml example/functions.yaml | crossplane beta validate example -
+```
+
+See the [composition functions documentation][docs-functions] to learn more
+about `crossplane beta render`.
 
 ## Migration from native Composition Environment
 
@@ -47,7 +67,7 @@ function and how it fits with other functions:
 
 ![diagram.png](diagram.png)
 
-## Migration Example
+### Migration Example
 
 Given an example `Resource` Composition:
 
@@ -207,29 +227,6 @@ spec:
             fromEnv: {{ index .context "apiextensions.crossplane.io/environment" "complex" "c" "d" }}
 ```
 
-## Using this function
-
-See the [example](example) directory for examples that you can run locally using
-the Crossplane CLI:
-
-```shell
-$ crossplane beta render \
-  --extra-resources example/environmentConfigs.yaml \
-  --include-context \
-  example/xr.yaml example/composition.yaml example/functions.yaml
-```
-
-To validate the rendered output, you can use the `crossplane beta validate` command:
-```shell
-$ crossplane beta render \
-  --extra-resources example/environmentConfigs.yaml \
-  --include-full-xr \
-  example/xr.yaml example/composition.yaml example/functions.yaml | crossplane beta validate example -
-```
-
-See the [composition functions documentation][docs-functions] to learn more
-about `crossplane beta render`.
-
 ## Developing this function
 
 This function uses [Go][go], [Docker][docker], and the [Crossplane CLI][cli] to
@@ -252,8 +249,9 @@ $ crossplane xpkg build -f package --embed-runtime-image=runtime
 [bsr]: https://buf.build/crossplane/crossplane/docs/main:apiextensions.fn.proto.v1beta1#apiextensions.fn.proto.v1beta1.RunFunctionRequest
 [cli]: https://docs.crossplane.io/latest/cli
 [docker]: https://www.docker.com
-[docs-functions]: https://docs.crossplane.io/v1.14/concepts/composition-functions/
+[docs-functions]: https://docs.crossplane.io/latest/concepts/compositions/
 [dropped]: https://github.com/crossplane/crossplane/pull/5938
 [function-go-templating]: https://github.com/crossplane-contrib/function-go-templating
 [function-patch-and-transform]: https://github.com/crossplane-contrib/function-patch-and-transform
 [go]: https://go.dev
+[upstream-docs-environment-configs]: https://docs.crossplane.io/latest/concepts/environment-configs/
