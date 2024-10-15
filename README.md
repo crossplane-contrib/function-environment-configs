@@ -43,7 +43,7 @@ about `crossplane beta render`.
 
 ## Migration from native Composition Environment
 
-Crossplane 1.8 [dropped] native Composition Environment, meaning
+Crossplane 1.18 [dropped] native Composition Environment, meaning
 `spec.environment` and `*Environment` patches were removed, while
 `EnvironmentConfig` as a resource was promoted to `Beta`.
 
