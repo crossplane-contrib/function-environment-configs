@@ -69,7 +69,13 @@ function and how it fits with other functions:
 
 ### Migration Example
 
-Given an example `Resource` Composition:
+Given an example `Resource`-mode Composition:
+  
+> [!WARNING]
+> The example below is using the old native Composition Environment, which was dropped in Crossplane 1.18.
+
+<details><summary>Old Resource-mode Composition</summary>
+<p>
 
 ```yaml
 apiVersion: apiextensions.crossplane.io/v1
@@ -115,6 +121,9 @@ spec:
          toFieldPath: "someOtherFieldInTheEnvironment"
 
 ```
+
+</p>
+</details> 
 
 The above can be converted to use this function and
 [function-patch-and-transform] as follows:
