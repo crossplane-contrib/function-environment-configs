@@ -59,15 +59,15 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								},
@@ -283,15 +283,15 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								},
@@ -427,9 +427,9 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								}
@@ -483,17 +483,17 @@ func TestRunFunction(t *testing.T) {
 								"b": "only-from-default",
 								"e": "overridden-from-input",
 								"f": "overridden-from-env-config-2"
-							},	
+							},
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								}
@@ -574,6 +574,147 @@ func TestRunFunction(t *testing.T) {
 								"e": "overridden-from-input-ok",
 								"f": "overridden-from-env-config-1-ok",
 								"g": "overridden-from-env-config-2-ok",
+								"h": "override-from-env-config-1-ok"
+							}`)),
+						},
+					},
+				},
+			},
+		},
+		"DataOverrides": {
+			reason: "The Function should merge the provided EnvironmentConfigs and allow data overrides",
+			args: args{
+				req: &fnv1beta1.RunFunctionRequest{
+					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
+					Context: resource.MustStructJSON(`{
+						"` + FunctionContextKeyEnvironment + `": {
+							"apiVersion": "internal.crossplane.io/v1alpha1",
+							"kind": "Environment",
+							"a": "only-from-input",
+							"e": "overridden-from-input-ok",
+							"f": "overridden-from-env-config-1",
+							"g": "overridden-from-env-config-2"
+						}
+					}`),
+					Observed: &fnv1beta1.State{
+						Composite: &fnv1beta1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"parameters": {
+										"override-g": "overridden-from-xr-parameters-ok",
+										"unused": "qux"
+									}
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"defaultData": {
+								"b": "only-from-default",
+								"e": "overridden-from-input",
+								"f": "overridden-from-env-config-2"
+							},	
+							"environmentConfigs": [
+								{	
+									"type": "Reference",
+									"ref": {	
+										"name": "my-env-config"
+									}
+								},
+								{	
+									"type": "Reference",
+									"ref": {	
+										"name": "my-second-env-config"
+									}
+								}
+							],
+							"dataOverrides": {
+								"g": "spec.parameters.override-g"
+							}
+						}
+					}`),
+					ExtraResources: map[string]*fnv1beta1.Resources{
+						"environment-config-0": {
+							Items: []*fnv1beta1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "my-env-config"
+									},
+									"data": {
+										"c": "only-from-env-config-1",
+										"f": "overridden-from-env-config-1-ok",
+										"h": "override-from-env-config-1"
+									}
+								}`),
+								},
+							},
+						},
+						"environment-config-1": {
+							Items: []*fnv1beta1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "my-second-env-config"
+									},
+									"data": {
+										"d": "only-from-env-config-1",
+										"g": "overridden-from-env-config-2-ok",
+										"h": "override-from-env-config-1-ok"
+									}
+								}`),
+								},
+							},
+						},
+					},
+				},
+			},
+			want: want{
+				rsp: &fnv1beta1.RunFunctionResponse{
+					Meta:    &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1beta1.Result{},
+					Requirements: &fnv1beta1.Requirements{
+						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchName{
+									MatchName: "my-env-config",
+								},
+							},
+							"environment-config-1": {
+								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1beta1.ResourceSelector_MatchName{
+									MatchName: "my-second-env-config",
+								},
+							},
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"a": "only-from-input",
+								"b": "only-from-default",
+								"c": "only-from-env-config-1",
+								"d": "only-from-env-config-1",
+								"e": "overridden-from-input-ok",
+								"f": "overridden-from-env-config-1-ok",
+								"g": "overridden-from-xr-parameters-ok",
 								"h": "override-from-env-config-1-ok"
 							}`)),
 						},

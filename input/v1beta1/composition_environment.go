@@ -49,6 +49,11 @@ type InputSpec struct {
 	// EnvironmentSourceReferences in EnvironmentConfigs list.
 	// +optional
 	Policy *Policy `json:"policy,omitempty"`
+
+	// DataOverrides allows overriding the resulting environment data with
+	// static values. The keys are field paths in the environment data, and the
+	// values are references to where the data should be taken from (e.g. "spec.parameters.foo")
+	DataOverrides map[string]string `json:"dataOverrides,omitempty"`
 }
 
 // Policy represents the Resolution policy of Reference instance.
