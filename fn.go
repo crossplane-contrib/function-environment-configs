@@ -17,7 +17,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
-	fnv1beta1 "github.com/crossplane/function-sdk-go/proto/v1beta1"
+	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/response"
 
@@ -30,13 +30,13 @@ const (
 
 // Function returns whatever response you ask it to.
 type Function struct {
-	fnv1beta1.UnimplementedFunctionRunnerServiceServer
+	fnv1.UnimplementedFunctionRunnerServiceServer
 
 	log logging.Logger
 }
 
 // RunFunction runs the Function.
-func (f *Function) RunFunction(_ context.Context, req *fnv1beta1.RunFunctionRequest) (*fnv1beta1.RunFunctionResponse, error) {
+func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
 	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 
 	rsp := response.To(req, response.DefaultTTL)
@@ -257,16 +257,16 @@ func sortExtrasByFieldPath(extras []resource.Extra, path string) error { //nolin
 	return nil
 }
 
-func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1beta1.Requirements, error) {
-	extraResources := make(map[string]*fnv1beta1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
+func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
+	extraResources := make(map[string]*fnv1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
 		switch config.Type {
 		case v1beta1.EnvironmentSourceTypeReference, "":
-			extraResources[extraResName] = &fnv1beta1.ResourceSelector{
+			extraResources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 				Kind:       "EnvironmentConfig",
-				Match: &fnv1beta1.ResourceSelector_MatchName{
+				Match: &fnv1.ResourceSelector_MatchName{
 					MatchName: config.Ref.Name,
 				},
 			}
@@ -291,16 +291,16 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1beta1.Re
 			if len(matchLabels) == 0 {
 				continue
 			}
-			extraResources[extraResName] = &fnv1beta1.ResourceSelector{
+			extraResources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 				Kind:       "EnvironmentConfig",
-				Match: &fnv1beta1.ResourceSelector_MatchLabels{
-					MatchLabels: &fnv1beta1.MatchLabels{Labels: matchLabels},
+				Match: &fnv1.ResourceSelector_MatchLabels{
+					MatchLabels: &fnv1.MatchLabels{Labels: matchLabels},
 				},
 			}
 		}
 	}
-	return &fnv1beta1.Requirements{ExtraResources: extraResources}, nil
+	return &fnv1.Requirements{ExtraResources: extraResources}, nil
 }
 
 func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]interface{}, error) {
