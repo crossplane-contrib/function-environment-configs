@@ -1,16 +1,51 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":semanticCommits"
   ],
   "crossplane": {
     "fileMatch": ["(^|/)example/.*\\.ya?ml$"]
   },
+  "rebaseWhen": "conflicted",
   "packageRules": [
     {
       "matchManagers": ["crossplane"],
       "matchFileNames": ["example/**"],
       "groupName": "examples"
+    },
+    {
+      "description": "Group all go version updates",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "groupName": "golang version"
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump Go version used in workflows",
+      "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
+      "matchStrings": [
+        "GO_VERSION: '(?<currentValue>.*?)'\\n"
+      ],
+      "datasourceTemplate": "golang-version",
+      "depNameTemplate": "golang"
+    }, {
+      "customType": "regex",
+      "description": "Bump golangci-lint version in workflows",
+      "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
+      "matchStrings": [
+        "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
+        "GOLANGCILINT_VERSION = (?<currentValue>.*?)\\n"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "golangci/golangci-lint",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }
