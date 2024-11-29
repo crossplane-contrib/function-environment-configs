@@ -10,11 +10,12 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
-	fnv1beta1 "github.com/crossplane/function-sdk-go/proto/v1beta1"
+	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
 )
@@ -23,10 +24,10 @@ func TestRunFunction(t *testing.T) {
 
 	type args struct {
 		ctx context.Context
-		req *fnv1beta1.RunFunctionRequest
+		req *fnv1.RunFunctionRequest
 	}
 	type want struct {
-		rsp *fnv1beta1.RunFunctionResponse
+		rsp *fnv1.RunFunctionResponse
 		err error
 	}
 
@@ -38,10 +39,10 @@ func TestRunFunction(t *testing.T) {
 		"RequestEnvironmentConfigs": {
 			reason: "The Function should request the necessary EnvironmentConfigs",
 			args: args{
-				req: &fnv1beta1.RunFunctionRequest{
-					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
-					Observed: &fnv1beta1.State{
-						Composite: &fnv1beta1.Resource{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
 							Resource: resource.MustStructJSON(`{
 								"apiVersion": "test.crossplane.io/v1alpha1",
 								"kind": "XR",
@@ -116,30 +117,30 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 			want: want{
-				rsp: &fnv1beta1.RunFunctionResponse{
-					Meta:    &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
-					Results: []*fnv1beta1.Result{},
-					Requirements: &fnv1beta1.Requirements{
-						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
 								},
 							},
 							"environment-config-2": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchLabels{
-									MatchLabels: &fnv1beta1.MatchLabels{
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
 										Labels: map[string]string{
 											"foo": "bar",
 										},
@@ -150,8 +151,8 @@ func TestRunFunction(t *testing.T) {
 							"environment-config-4": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchLabels{
-									MatchLabels: &fnv1beta1.MatchLabels{
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
 										Labels: map[string]string{
 											"someMoreFoo": "someMoreBar",
 										},
@@ -166,10 +167,10 @@ func TestRunFunction(t *testing.T) {
 		"RequestEnvironmentConfigsFound": {
 			reason: "The Function should request the necessary EnvironmentConfigs even if they are already present in the request",
 			args: args{
-				req: &fnv1beta1.RunFunctionRequest{
-					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
-					Observed: &fnv1beta1.State{
-						Composite: &fnv1beta1.Resource{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
 							Resource: resource.MustStructJSON(`{
 								"apiVersion": "test.crossplane.io/v1alpha1",
 								"kind": "XR",
@@ -182,9 +183,9 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1beta1.Resources{
+					ExtraResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -201,7 +202,7 @@ func TestRunFunction(t *testing.T) {
 							},
 						},
 						"environment-config-1": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -218,7 +219,7 @@ func TestRunFunction(t *testing.T) {
 							},
 						},
 						"environment-config-2": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -246,7 +247,7 @@ func TestRunFunction(t *testing.T) {
 							},
 						},
 						"environment-config-3": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -262,7 +263,7 @@ func TestRunFunction(t *testing.T) {
 							},
 						},
 						"environment-config-4": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -340,30 +341,30 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 			want: want{
-				rsp: &fnv1beta1.RunFunctionResponse{
-					Meta:    &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
-					Results: []*fnv1beta1.Result{},
-					Requirements: &fnv1beta1.Requirements{
-						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
 								},
 							},
 							"environment-config-2": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchLabels{
-									MatchLabels: &fnv1beta1.MatchLabels{
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
 										Labels: map[string]string{
 											"foo": "bar",
 										},
@@ -374,8 +375,8 @@ func TestRunFunction(t *testing.T) {
 							"environment-config-4": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchLabels{
-									MatchLabels: &fnv1beta1.MatchLabels{
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
 										Labels: map[string]string{
 											"someMoreFoo": "someMoreBar",
 										},
@@ -404,10 +405,10 @@ func TestRunFunction(t *testing.T) {
 		"RequestEnvironmentConfigsNotFoundRequired": {
 			reason: "The Function should return fatal if a required EnvironmentConfig is not found",
 			args: args{
-				req: &fnv1beta1.RunFunctionRequest{
-					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
-					Observed: &fnv1beta1.State{
-						Composite: &fnv1beta1.Resource{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
 							Resource: resource.MustStructJSON(`{
 								"apiVersion": "test.crossplane.io/v1alpha1",
 								"kind": "XR",
@@ -417,9 +418,9 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1beta1.Resources{
+					ExtraResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
-							Items: []*fnv1beta1.Resource{},
+							Items: []*fnv1.Resource{},
 						},
 					},
 					Input: resource.MustStructJSON(`{
@@ -427,9 +428,9 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								}
@@ -439,19 +440,20 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 			want: want{
-				rsp: &fnv1beta1.RunFunctionResponse{
-					Meta: &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
-					Results: []*fnv1beta1.Result{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{
 						{
-							Severity: fnv1beta1.Severity_SEVERITY_FATAL,
+							Severity: fnv1.Severity_SEVERITY_FATAL,
+							Target:   ptr.To(fnv1.Target_TARGET_COMPOSITE),
 						},
 					},
-					Requirements: &fnv1beta1.Requirements{
-						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
@@ -463,8 +465,8 @@ func TestRunFunction(t *testing.T) {
 		"MergeEnvironmentConfigs": {
 			reason: "The Function should merge the provided EnvironmentConfigs",
 			args: args{
-				req: &fnv1beta1.RunFunctionRequest{
-					Meta: &fnv1beta1.RequestMeta{Tag: "hello"},
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
 					Context: resource.MustStructJSON(`{
 						"` + FunctionContextKeyEnvironment + `": {
 							"apiVersion": "internal.crossplane.io/v1alpha1",
@@ -500,9 +502,9 @@ func TestRunFunction(t *testing.T) {
 							]
 						}
 					}`),
-					ExtraResources: map[string]*fnv1beta1.Resources{
+					ExtraResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -520,7 +522,7 @@ func TestRunFunction(t *testing.T) {
 							},
 						},
 						"environment-config-1": {
-							Items: []*fnv1beta1.Resource{
+							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
 									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
@@ -541,22 +543,22 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 			want: want{
-				rsp: &fnv1beta1.RunFunctionResponse{
-					Meta:    &fnv1beta1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
-					Results: []*fnv1beta1.Result{},
-					Requirements: &fnv1beta1.Requirements{
-						ExtraResources: map[string]*fnv1beta1.ResourceSelector{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
 								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
 								Kind:       "EnvironmentConfig",
-								Match: &fnv1beta1.ResourceSelector_MatchName{
+								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
 								},
 							},
@@ -588,7 +590,7 @@ func TestRunFunction(t *testing.T) {
 			f := &Function{log: logging.NewNopLogger()}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 
-			diff := cmp.Diff(tc.want.rsp, rsp, cmpopts.AcyclicTransformer("toJsonWithoutResultMessages", func(r *fnv1beta1.RunFunctionResponse) []byte {
+			diff := cmp.Diff(tc.want.rsp, rsp, cmpopts.AcyclicTransformer("toJsonWithoutResultMessages", func(r *fnv1.RunFunctionResponse) []byte {
 				// We don't care about messages.
 				// cmptopts.IgnoreField wasn't working with protocmp.Transform
 				// We can't split this to another transformer as
