@@ -116,6 +116,15 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		mergedData = mergeMaps(defaultData, mergedData)
 	}
 
+	if in.Spec.DataOverrides != nil {
+		xr := req.Observed.Composite.Resource.AsMap()
+		for k, v := range in.Spec.DataOverrides {
+			if val, err := fieldpath.Pave(xr).GetValue(v); err == nil {
+				mergedData[k] = val
+			}
+		}
+	}
+
 	// build environment and return it in the response as context
 	out := &unstructured.Unstructured{Object: mergedData}
 	if out.GroupVersionKind().Empty() {
