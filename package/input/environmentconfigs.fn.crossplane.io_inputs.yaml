@@ -43,6 +43,14 @@ spec:
               An InputSpec specifies the environment for rendering composed
               resources.
             properties:
+              dataOverrides:
+                additionalProperties:
+                  type: string
+                description: |-
+                  DataOverrides allows overriding the resulting environment data with
+                  static values. The keys are field paths in the environment data, and the
+                  values are references to where the data should be taken from (e.g. .spec.parameters.foo)
+                type: object
               defaultData:
                 additionalProperties:
                   x-kubernetes-preserve-unknown-fields: true
