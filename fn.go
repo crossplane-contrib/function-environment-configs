@@ -265,7 +265,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 		switch config.Type {
 		case v1beta1.EnvironmentSourceTypeReference, "":
 			extraResources[extraResName] = &fnv1.ResourceSelector{
-				ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       "EnvironmentConfig",
 				Match: &fnv1.ResourceSelector_MatchName{
 					MatchName: config.Ref.Name,
@@ -293,7 +293,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 				continue
 			}
 			extraResources[extraResName] = &fnv1.ResourceSelector{
-				ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       "EnvironmentConfig",
 				Match: &fnv1.ResourceSelector_MatchLabels{
 					MatchLabels: &fnv1.MatchLabels{Labels: matchLabels},
