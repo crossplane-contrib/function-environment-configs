@@ -60,15 +60,15 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								},
@@ -123,21 +123,21 @@ func TestRunFunction(t *testing.T) {
 					Requirements: &fnv1.Requirements{
 						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
 								},
 							},
 							"environment-config-2": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchLabels{
 									MatchLabels: &fnv1.MatchLabels{
@@ -149,7 +149,7 @@ func TestRunFunction(t *testing.T) {
 							},
 							// environment-config-3 is not requested because it was optional
 							"environment-config-4": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchLabels{
 									MatchLabels: &fnv1.MatchLabels{
@@ -188,7 +188,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-env-config"
@@ -205,7 +205,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-second-env-config"
@@ -222,7 +222,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-third-env-config-b"
@@ -234,7 +234,7 @@ func TestRunFunction(t *testing.T) {
 								},
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-third-env-config-a"
@@ -250,7 +250,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-third-env-config"
@@ -266,7 +266,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-fourth-env-config"
@@ -284,15 +284,15 @@ func TestRunFunction(t *testing.T) {
 						"kind": "Input",
 						"spec": {
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								},
@@ -347,21 +347,21 @@ func TestRunFunction(t *testing.T) {
 					Requirements: &fnv1.Requirements{
 						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
 								},
 							},
 							"environment-config-2": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchLabels{
 									MatchLabels: &fnv1.MatchLabels{
@@ -373,7 +373,7 @@ func TestRunFunction(t *testing.T) {
 							},
 							// environment-config-3 is not requested because it was optional
 							"environment-config-4": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchLabels{
 									MatchLabels: &fnv1.MatchLabels{
@@ -451,7 +451,7 @@ func TestRunFunction(t *testing.T) {
 					Requirements: &fnv1.Requirements{
 						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
@@ -485,17 +485,17 @@ func TestRunFunction(t *testing.T) {
 								"b": "only-from-default",
 								"e": "overridden-from-input",
 								"f": "overridden-from-env-config-2"
-							},	
+							},
 							"environmentConfigs": [
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-env-config"
 									}
 								},
-								{	
+								{
 									"type": "Reference",
-									"ref": {	
+									"ref": {
 										"name": "my-second-env-config"
 									}
 								}
@@ -507,7 +507,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-env-config"
@@ -525,7 +525,7 @@ func TestRunFunction(t *testing.T) {
 							Items: []*fnv1.Resource{
 								{
 									Resource: resource.MustStructJSON(`{
-									"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
 									"kind": "EnvironmentConfig",
 									"metadata": {
 										"name": "my-second-env-config"
@@ -549,14 +549,14 @@ func TestRunFunction(t *testing.T) {
 					Requirements: &fnv1.Requirements{
 						ExtraResources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-env-config",
 								},
 							},
 							"environment-config-1": {
-								ApiVersion: "apiextensions.crossplane.io/v1alpha1",
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
 								Match: &fnv1.ResourceSelector_MatchName{
 									MatchName: "my-second-env-config",
