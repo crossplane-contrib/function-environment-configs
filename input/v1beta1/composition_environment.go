@@ -63,7 +63,7 @@ type Policy struct {
 	// 	require environmentConfigRefs to be moved to the XR's status, as
 	// 	Functions can not write to the XR spec. Right now we behave as if
 	// 	Always was set.
-	//Resolve *xpv1.ResolvePolicy `json:"resolve,omitempty"`
+	// Resolve *xpv1.ResolvePolicy `json:"resolve,omitempty"`
 
 	// Resolution specifies whether resolution of this reference is required.
 	// The default is 'Required', which means the reconcile will fail if the
@@ -162,6 +162,7 @@ type EnvironmentSourceSelector struct {
 	MatchLabels []EnvironmentSourceSelectorLabelMatcher `json:"matchLabels,omitempty"`
 }
 
+// GetMode returns the mode of the EnvironmentSourceSelector, returning the default if not set.
 func (e *EnvironmentSourceSelector) GetMode() EnvironmentSourceSelectorModeType {
 	if e == nil || e.Mode == "" {
 		return EnvironmentSourceSelectorSingleMode
@@ -169,6 +170,8 @@ func (e *EnvironmentSourceSelector) GetMode() EnvironmentSourceSelectorModeType 
 	return e.Mode
 }
 
+// GetSortByFieldPath returns the field path used to sort the EnvironmentConfigs,
+// returning the default if not set.
 func (e *EnvironmentSourceSelector) GetSortByFieldPath() string {
 	if e == nil || e.SortByFieldPath == "" {
 		return "metadata.name"
