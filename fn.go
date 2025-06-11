@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/crossplane/function-sdk-go/resource"
 	"google.golang.org/protobuf/types/known/structpb"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,15 +15,17 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
+	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
 
 	"github.com/crossplane-contrib/function-environment-configs/input/v1beta1"
 )
 
 const (
+	// FunctionContextKeyEnvironment is a well-known Context key where the computed Environment
+	// will be stored, so that Crossplane v1 and other functions can access it, e.g. function-patch-and-transform.
 	FunctionContextKeyEnvironment = "apiextensions.crossplane.io/environment"
 )
 
@@ -36,7 +37,7 @@ type Function struct {
 }
 
 // RunFunction runs the Function.
-func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
+func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) { //nolint:gocyclo // TODO(phisco): refactor
 	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 
 	rsp := response.To(req, response.DefaultTTL)
@@ -69,7 +70,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	rsp.Requirements = requirements
 
 	if req.ExtraResources == nil {
-		f.log.Debug("No extra resources specified, exiting", "requirements", rsp.Requirements)
+		f.log.Debug("No extra resources specified, exiting", "requirements", rsp.GetRequirements())
 		return rsp, nil
 	}
 
@@ -141,46 +142,69 @@ func getSelectedEnvConfigs(in *v1beta1.Input, extraResources map[string][]resour
 		}
 		switch config.GetType() {
 		case v1beta1.EnvironmentSourceTypeReference:
-			envConfigName := config.Ref.Name
-			if len(resources) == 0 {
-				if in.Spec.Policy.IsResolutionPolicyOptional() {
-					continue
-				}
-				return nil, errors.Errorf("Required environment config %q not found", envConfigName)
+			out, err := processSourceByReference(in, config, resources)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot process environment config %q by reference, %q", config.Ref.Name, extraResName)
 			}
-			if len(resources) > 1 {
-				return nil, errors.Errorf("expected exactly one extra resource %q, got %d", envConfigName, len(resources))
+			if out == nil {
+				continue
 			}
-			envConfigs = append(envConfigs, *resources[0].Resource)
+			envConfigs = append(envConfigs, *out)
 
 		case v1beta1.EnvironmentSourceTypeSelector:
-			selector := config.Selector
-			switch selector.GetMode() {
-			case v1beta1.EnvironmentSourceSelectorSingleMode:
-				if len(resources) != 1 {
-					return nil, errors.Errorf("expected exactly one extra resource %q, got %d", extraResName, len(resources))
-				}
-				envConfigs = append(envConfigs, *resources[0].Resource)
-			case v1beta1.EnvironmentSourceSelectorMultiMode:
-				if selector.MinMatch != nil && len(resources) < int(*selector.MinMatch) {
-					return nil, errors.Errorf("expected at least %d extra resources %q, got %d", *selector.MinMatch, extraResName, len(resources))
-				}
-				if err := sortExtrasByFieldPath(resources, selector.GetSortByFieldPath()); err != nil {
-					return nil, err
-				}
-				if selector.MaxMatch != nil && len(resources) > int(*selector.MaxMatch) {
-					resources = resources[:*selector.MaxMatch]
-				}
-				for _, r := range resources {
-					envConfigs = append(envConfigs, *r.Resource)
-				}
-			default:
-				// should never happen
-				return nil, errors.Errorf("unknown selector mode %q", selector.Mode)
+			out, err := processEnvironmentSource(config, resources)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot process environment config %q by selector", extraResName)
+			}
+			if len(out) > 0 {
+				envConfigs = append(envConfigs, out...)
 			}
 		}
 	}
 	return envConfigs, nil
+}
+
+func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []resource.Extra) ([]unstructured.Unstructured, error) {
+	out := make([]unstructured.Unstructured, 0)
+	selector := config.Selector
+	switch selector.GetMode() {
+	case v1beta1.EnvironmentSourceSelectorSingleMode:
+		if len(resources) != 1 {
+			return nil, errors.Errorf("expected exactly one extra resource, got %d", len(resources))
+		}
+		out = append(out, *resources[0].Resource)
+	case v1beta1.EnvironmentSourceSelectorMultiMode:
+		if selector.MinMatch != nil && uint64(len(resources)) < *selector.MinMatch {
+			return nil, errors.Errorf("expected at least %d extra resources, got %d", *selector.MinMatch, len(resources))
+		}
+		if err := sortExtrasByFieldPath(resources, selector.GetSortByFieldPath()); err != nil {
+			return nil, err
+		}
+		if selector.MaxMatch != nil && uint64(len(resources)) > *selector.MaxMatch {
+			resources = resources[:*selector.MaxMatch]
+		}
+		for _, r := range resources {
+			out = append(out, *r.Resource)
+		}
+	default:
+		// should never happen
+		return nil, errors.Errorf("unknown selector mode %q", selector.Mode)
+	}
+	return out, nil
+}
+
+func processSourceByReference(in *v1beta1.Input, config v1beta1.EnvironmentSource, resources []resource.Extra) (*unstructured.Unstructured, error) {
+	envConfigName := config.Ref.Name
+	if len(resources) == 0 {
+		if in.Spec.Policy.IsResolutionPolicyOptional() {
+			return nil, nil
+		}
+		return nil, errors.Errorf("Required environment config %q not found", envConfigName)
+	}
+	if len(resources) > 1 {
+		return nil, errors.Errorf("expected exactly one extra resource %q, got %d", envConfigName, len(resources))
+	}
+	return resources[0].Resource, nil
 }
 
 func sortExtrasByFieldPath(extras []resource.Extra, path string) error { //nolint:gocyclo // TODO(phisco): refactor

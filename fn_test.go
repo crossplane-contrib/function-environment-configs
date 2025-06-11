@@ -14,7 +14,6 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
@@ -596,7 +595,7 @@ func TestRunFunction(t *testing.T) {
 				// We can't split this to another transformer as
 				// transformers are applied not in order but as soon as they
 				// match the type, which are walked from the root (RunFunctionResponse).
-				for _, result := range r.Results {
+				for _, result := range r.GetResults() {
 					result.Message = ""
 				}
 				out, err := protojson.Marshal(r)
