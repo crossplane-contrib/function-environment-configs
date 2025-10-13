@@ -1,0 +1,20 @@
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: example-config-one
+  labels:
+    matchingLabel: "matchingKey"
+data:
+  singleStanza:
+    key: not-this-value
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: example-config-two
+  labels:
+    matchingLabel: "matchingOtherKey"
+data:
+  singleStanza:
+    key: here-it-is

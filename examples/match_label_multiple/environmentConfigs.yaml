@@ -1,0 +1,25 @@
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: example-config-one
+  labels:
+    matchingLabel: "matchingKey"
+data:
+  multiple:
+    a: b
+    c:
+      d: e
+      f: "1"
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: example-config-two
+  labels:
+    matchingLabel: "matchingKey"
+data:
+  multiple:
+    g: h
+    i:
+      j: k

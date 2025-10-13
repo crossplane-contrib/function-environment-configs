@@ -1,0 +1,40 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: function-environment-configs
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+          - type: Selector
+            selector:
+              mode: Multiple
+              matchLabels: 
+                - type: Value
+                  key: matchingLabel
+                  value: matchingKey
+  - step: go-templating
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          ---
+          apiVersion: example.crossplane.io/v1
+          kind: XR
+          status:
+            fromEnvOne: {{ index .context "apiextensions.crossplane.io/environment" "multiple" "c" "d" }}
+            fromEnvTwo: {{ index .context "apiextensions.crossplane.io/environment" "multiple" "i" "j" }}
