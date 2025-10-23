@@ -236,6 +236,130 @@ spec:
             fromEnv: {{ index .context "apiextensions.crossplane.io/environment" "complex" "c" "d" }}
 ```
 
+### Environment Configuration Resource Sourcing
+
+#### Type Reference
+Source type `Reference` selects an environment configuration with the exact matching name.
+
+```yaml
+< composition code removed for brevity >
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+        - type: Reference
+          ref:
+            name: example-config
+< composition code removed for brevity >
+```
+
+#### Type Selector
+Source type `Selector` selects an environment configuration with the exact matching name. Two selection modes are available; `Single` and `Multiple`. `Single` mode selects a single `environmentConfig` resource based on the labels of the `environmentConfig` and `Multiple` selects multiple `environmentConfig` resources. Mode will default to `Single` if omitted. 
+
+Each label matcher accepts two types of matching; `Value` and `ValueFromFieldPath`. Type `Value` accepts a literal key/value to match and type `FromCompositeFieldPath` accepts a field input from the composite resource. 
+
+
+Type `Selector` also supports inputs from the composite resource.
+###### Single Mode
+```yaml
+< composition code removed for brevity >
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+        - type: Selector
+          selector:
+            mode: Single
+            matchLabels: 
+              # type 'Value' 
+              - type: Value
+                # String literal of the label key to match 
+                key: example-label-a-key
+                # String literal of the label value to match 
+                value: example-label-a-value
+        - type: Selector
+          selector:
+            mode: Single
+            matchLabels: 
+              # type 'FromCompositeFieldPath' 
+              # 'type' will default to 'FromCompositeFieldPath' if omitted.
+              - type: FromCompositeFieldPath
+                key: example-label-b-key
+                # valueFromFieldPath expects the field path to get the key's value from within the composite resource.
+                valueFromFieldPath: spec.example.b
+                # FromFieldPathPolicy accepts values of 'Required' or 'Optional'. It defaults to 'Required' if omitted.
+                # If set to 'Required', the function will throw an error if the field is not found in the field of the composite resource.
+                # Instead if 'Optional' is set the label pair will be skipped if the field does not exist and other matchingLabels will be used if any others exist.
+                FromFieldPathPolicy: Required
+< composition code removed for brevity >
+```
+
+###### Multiple Mode
+Multiple mode differs from Single mode in that it will match several `environmentConfig` resources instead of a single `environmentConfig` resource. It accepts all of the same arguments as `Single` mode along with a few specific fields only available in `Multiple` mode.
+
+```yaml
+< composition code removed for brevity >
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+        - type: Selector
+          selector:
+            mode: Multiple
+            matchLabels: 
+              # type 'Value' 
+              - type: Value
+                # String literal of the label key to match 
+                key: example-label-a-key
+                # String literal of the label value to match 
+                value: example-label-a-value
+          # 'maxMatch' is an optional argument that sets the maximum number of environmentConfigs to pull. Pulls all if omitted.
+          # Only supported in 'Multiple' mode
+          maxMatch: 3
+          # 'minMatch' is an optional argument that  the required minimum number of environmentConfigs to pull.
+          # Only supported in 'Multiple' mode
+          minMatch: 1
+          # 'sortByFieldPath' is an optional argument that sets the field path on how the pulled environmentConfigs is alphabetically sorted.
+          # Only supported in 'Multiple' mode. Defaults to "metadata.name" if omitted.
+          sortByFieldPath: metadata.name
+< composition code removed for brevity >
+```
+
+### Default data
+```yaml
+< removed for brevity >
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        # Default data that can be overridden by EnvironmentConfigs being pulled
+        defaultData:
+          a: 
+            a1: example-a1
+            a2: example-a2
+          b: example-b
+        environmentConfigs:
+        - type: Reference
+          ref:
+            name: example-config
+< removed for brevity >
+```
+
 ## Developing this function
 
 This function uses [Go][go], [Docker][docker], and the [Crossplane CLI][cli] to

@@ -10,10 +10,10 @@ $ go run . --insecure --debug
 
 ```shell
 # Then, in another terminal, call it with these example manifests
-$ crossplane beta render \
-  --extra-resources example/environmentConfigs.yaml \
+$ crossplane render \
+  --extra-resources reference_name/environmentConfigs.yaml \
   --include-context \
-  example/xr.yaml example/composition.yaml example/functions.yaml
+  reference_name/xr.yaml reference_name/composition.yaml reference_name/functions.yaml
 ---
 apiVersion: example.crossplane.io/v1
 kind: XR
@@ -28,14 +28,14 @@ status:
   fromEnv: e
 ---
 apiVersion: render.crossplane.io/v1beta1
-kind: Context
 fields:
   apiextensions.crossplane.io/environment:
-    kind: Environment
     apiVersion: internal.crossplane.io/v1alpha1
     complex:
       a: b
       c:
         d: e
         f: "1"
+    kind: Environment
+kind: Context
 ```
