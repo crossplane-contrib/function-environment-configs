@@ -461,6 +461,198 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"SelectorWithOptionalFieldPathNotProvided": {
+			reason: "The Function should gracefully skip selectors with optional field paths when the environment config is not provided in extraResources",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"presentField": "value"
+								}
+							}`),
+						},
+					},
+					ExtraResources: map[string]*fnv1.Resources{
+						"environment-config-0": {
+							Items: []*fnv1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+										"apiVersion": "apiextensions.crossplane.io/v1beta1",
+										"kind": "EnvironmentConfig",
+										"metadata": {
+											"name": "base-env-config"
+										},
+										"data": {
+											"baseKey": "baseVal"
+										}
+									}`),
+								},
+							},
+						},
+						// environment-config-1 is NOT provided (optional field doesn't exist)
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Reference",
+									"ref": {
+										"name": "base-env-config"
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Multiple",
+										"minMatch": 0,
+										"maxMatch": 1,
+										"matchLabels": [
+											{
+												"key": "epd",
+												"valueFromFieldPath": "spec.epd.name",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchName{
+									MatchName: "base-env-config",
+								},
+							},
+							// environment-config-1 is not in requirements because optional field doesn't exist
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"baseKey": "baseVal"
+							}`)),
+						},
+					},
+				},
+			},
+		},
+		"SelectorSingleModeWithOptionalFieldPathNotProvided": {
+			reason: "Single mode should gracefully skip when optional field path doesn't exist (per documentation: 'if any others exist')",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"presentField": "value"
+								}
+							}`),
+						},
+					},
+					ExtraResources: map[string]*fnv1.Resources{
+						"environment-config-0": {
+							Items: []*fnv1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+										"apiVersion": "apiextensions.crossplane.io/v1beta1",
+										"kind": "EnvironmentConfig",
+										"metadata": {
+											"name": "base-env-config"
+										},
+										"data": {
+											"baseKey": "baseVal"
+										}
+									}`),
+								},
+							},
+						},
+						// environment-config-1 is NOT provided (optional field doesn't exist)
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Reference",
+									"ref": {
+										"name": "base-env-config"
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "epd",
+												"valueFromFieldPath": "spec.epd.name",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchName{
+									MatchName: "base-env-config",
+								},
+							},
+							// environment-config-1 is not in requirements because optional field doesn't exist
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"baseKey": "baseVal"
+							}`)),
+						},
+					},
+				},
+			},
+		},
 		"MergeEnvironmentConfigs": {
 			reason: "The Function should merge the provided EnvironmentConfigs",
 			args: args{

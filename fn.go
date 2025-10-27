@@ -138,7 +138,8 @@ func getSelectedEnvConfigs(in *v1beta1.Input, extraResources map[string][]resour
 		extraResName := fmt.Sprintf("environment-config-%d", i)
 		resources, ok := extraResources[extraResName]
 		if !ok {
-			return nil, errors.Errorf("cannot find expected extra resource %q", extraResName)
+			// Skip if the extra resource was not requested (e.g., optional selector with no matchLabels)
+			continue
 		}
 		switch config.GetType() {
 		case v1beta1.EnvironmentSourceTypeReference:
