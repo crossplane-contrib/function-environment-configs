@@ -12,7 +12,7 @@ require (
 	google.golang.org/protobuf v1.34.3-0.20240816073751-94ecbc261689
 	k8s.io/apiextensions-apiserver v0.31.0
 	k8s.io/apimachinery v0.31.0
-	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3
+	k8s.io/utils v0.0.0-20260108192941-914a6e750570
 	sigs.k8s.io/controller-tools v0.16.0
 )
 
