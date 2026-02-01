@@ -143,6 +143,8 @@ func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]res
 			// Skip if the required resource was not requested (e.g., optional selector with no matchLabels)
 			continue
 		}
+
+		var processed []unstructured.Unstructured
 		switch config.GetType() {
 		case v1beta1.EnvironmentSourceTypeReference:
 			out, err := processSourceByReference(in, config, resources)
@@ -152,19 +154,38 @@ func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]res
 			if out == nil {
 				continue
 			}
-			envConfigs = append(envConfigs, *out)
+			processed = []unstructured.Unstructured{*out}
 
 		case v1beta1.EnvironmentSourceTypeSelector:
 			out, err := processEnvironmentSource(config, resources)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot process environment config %q by selector", extraResName)
 			}
-			if len(out) > 0 {
-				envConfigs = append(envConfigs, out...)
-			}
+			processed = out
 		}
+
+		if err := moveDataToFieldPath(config.ToFieldPath, processed); err != nil {
+			return nil, err
+		}
+		envConfigs = append(envConfigs, processed...)
 	}
 	return envConfigs, nil
+}
+
+func moveDataToFieldPath(fieldPath *string, envConfigs []unstructured.Unstructured) error {
+	if fieldPath == nil {
+		return nil
+	}
+
+	for _, e := range envConfigs {
+		data := e.Object["data"]
+		delete(e.Object, "data")
+
+		if err := fieldpath.Pave(e.Object).SetValue("data."+*fieldPath, data); err != nil {
+			return errors.Errorf("Unable to move environment to target path '%s'", *fieldPath)
+		}
+	}
+	return nil
 }
 
 func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []resource.Required) ([]unstructured.Unstructured, error) {

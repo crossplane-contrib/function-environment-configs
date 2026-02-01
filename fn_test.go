@@ -773,6 +773,136 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"ToFieldPath": {
+			reason: "The Function should load into the specified toFieldPath",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"defaultData": {
+								"a": "from-default"
+							},
+							"environmentConfigs": [
+								{
+									"type": "Reference",
+									"ref": {
+										"name": "foo"
+									},
+									"toFieldPath": "foo"
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Multiple",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo",
+												"value": "bar"
+											}
+										]
+									},
+									"toFieldPath": "foo.bar"
+								}
+							]
+						}
+					}`),
+					RequiredResources: map[string]*fnv1.Resources{
+						"environment-config-0": {
+							Items: []*fnv1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "foo"
+									},
+									"data": {
+										"a": "from-foo"
+									}
+								}`),
+								},
+							},
+						},
+						"environment-config-1": {
+							Items: []*fnv1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "first"
+									},
+									"data": {
+										"a": "from-label-select-first"
+									}
+								}`),
+								},
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "second"
+									},
+									"data": {
+										"b": "from-label-select-second"
+									}
+								}`),
+								},
+							},
+						},
+					},
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						Resources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchName{
+									MatchName: "foo",
+								},
+							},
+							"environment-config-1": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"foo": "bar",
+										},
+									},
+								},
+							},
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"a": "from-default",
+								"foo": {
+									"a": "from-foo",
+									"bar": {
+										"a": "from-label-select-first",
+										"b": "from-label-select-second"
+									}
+								}
+							}`)),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
