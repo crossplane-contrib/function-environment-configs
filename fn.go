@@ -135,7 +135,9 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	return rsp, nil
 }
 
-func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]resource.Required) (envConfigs []unstructured.Unstructured, err error) {
+func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]resource.Required) (map[string][]unstructured.Unstructured, error) {
+	envConfigs := make(map[string][]unstructured.Unstructured)
+
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
 		resources, ok := requiredResources[extraResName]
@@ -144,7 +146,11 @@ func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]res
 			continue
 		}
 
-		var processed []unstructured.Unstructured
+		toFieldPath := ""
+		if config.ToFieldPath != nil {
+			toFieldPath = *config.ToFieldPath
+		}
+
 		switch config.GetType() {
 		case v1beta1.EnvironmentSourceTypeReference:
 			out, err := processSourceByReference(in, config, resources)
@@ -154,38 +160,19 @@ func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]res
 			if out == nil {
 				continue
 			}
-			processed = []unstructured.Unstructured{*out}
+			envConfigs[toFieldPath] = append(envConfigs[toFieldPath], *out)
 
 		case v1beta1.EnvironmentSourceTypeSelector:
 			out, err := processEnvironmentSource(config, resources)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot process environment config %q by selector", extraResName)
 			}
-			processed = out
+			if len(out) > 0 {
+				envConfigs[toFieldPath] = append(envConfigs[toFieldPath], out...)
+			}
 		}
-
-		if err := moveDataToFieldPath(config.ToFieldPath, processed); err != nil {
-			return nil, err
-		}
-		envConfigs = append(envConfigs, processed...)
 	}
 	return envConfigs, nil
-}
-
-func moveDataToFieldPath(fieldPath *string, envConfigs []unstructured.Unstructured) error {
-	if fieldPath == nil {
-		return nil
-	}
-
-	for _, e := range envConfigs {
-		data := e.Object["data"]
-		delete(e.Object, "data")
-
-		if err := fieldpath.Pave(e.Object).SetValue("data."+*fieldPath, data); err != nil {
-			return errors.Errorf("Unable to move environment to target path '%s'", *fieldPath)
-		}
-	}
-	return nil
 }
 
 func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []resource.Required) ([]unstructured.Unstructured, error) {
@@ -373,15 +360,23 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 	return &fnv1.Requirements{Resources: resources}, nil
 }
 
-func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]any, error) {
+func mergeEnvConfigsData(configsByField map[string][]unstructured.Unstructured) (map[string]interface{}, error) {
 	merged := map[string]any{}
-	for _, c := range configs {
-		data := map[string]any{}
-		if err := fieldpath.Pave(c.Object).GetValueInto("data", &data); err != nil {
-			return nil, errors.Wrapf(err, "cannot get data from environment config %q", c.GetName())
-		}
+	for fieldPath, configs := range configsByField {
+		for _, c := range configs {
+			data := map[string]any{}
+			if fieldPath != "" {
+				if err := fieldpath.Pave(data).SetValue(fieldPath, c.Object["data"]); err != nil {
+					return nil, errors.Errorf("cannot get data from environment config %s into path %q", c.GetName(), fieldPath)
+				}
+			} else {
+				if err := fieldpath.Pave(c.Object).GetValueInto("data", &data); err != nil {
+					return nil, errors.Wrapf(err, "cannot get data from environment config %q", c.GetName())
+				}
+			}
 
-		merged = mergeMaps(merged, data)
+			merged = mergeMaps(merged, data)
+		}
 	}
 	return merged, nil
 }
