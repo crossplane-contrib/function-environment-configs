@@ -120,7 +120,7 @@ func TestRunFunction(t *testing.T) {
 					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -182,7 +182,7 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1.Resources{
+					RequiredResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
 							Items: []*fnv1.Resource{
 								{
@@ -344,7 +344,7 @@ func TestRunFunction(t *testing.T) {
 					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -417,7 +417,7 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1.Resources{
+					RequiredResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
 							Items: []*fnv1.Resource{},
 						},
@@ -448,7 +448,7 @@ func TestRunFunction(t *testing.T) {
 						},
 					},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -480,7 +480,7 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1.Resources{
+					RequiredResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
 							Items: []*fnv1.Resource{
 								{
@@ -535,7 +535,7 @@ func TestRunFunction(t *testing.T) {
 					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -577,7 +577,7 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
-					ExtraResources: map[string]*fnv1.Resources{
+					RequiredResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
 							Items: []*fnv1.Resource{
 								{
@@ -630,7 +630,7 @@ func TestRunFunction(t *testing.T) {
 					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -693,7 +693,7 @@ func TestRunFunction(t *testing.T) {
 							]
 						}
 					}`),
-					ExtraResources: map[string]*fnv1.Resources{
+					RequiredResources: map[string]*fnv1.Resources{
 						"environment-config-0": {
 							Items: []*fnv1.Resource{
 								{
@@ -738,7 +738,7 @@ func TestRunFunction(t *testing.T) {
 					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{},
 					Requirements: &fnv1.Requirements{
-						ExtraResources: map[string]*fnv1.ResourceSelector{
+						Resources: map[string]*fnv1.ResourceSelector{
 							"environment-config-0": {
 								ApiVersion: "apiextensions.crossplane.io/v1beta1",
 								Kind:       "EnvironmentConfig",
@@ -807,7 +807,7 @@ func TestRunFunction(t *testing.T) {
 	}
 }
 
-func resourceWithFieldPathValue(path string, value any) resource.Extra {
+func resourceWithFieldPathValue(path string, value any) resource.Required {
 	u := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
@@ -815,19 +815,19 @@ func resourceWithFieldPathValue(path string, value any) resource.Extra {
 	if err != nil {
 		panic(err)
 	}
-	return resource.Extra{
+	return resource.Required{
 		Resource: &u,
 	}
 }
 
-func TestSortExtrasByFieldPath(t *testing.T) {
+func TestSortRequiredByFieldPath(t *testing.T) {
 	type args struct {
-		extras []resource.Extra
-		path   string
+		requiredResources []resource.Required
+		path              string
 	}
 	type want struct {
-		extras []resource.Extra
-		err    error
+		requiredResources []resource.Required
+		err               error
 	}
 
 	cases := map[string]struct {
@@ -836,9 +836,9 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 		want   want
 	}{
 		"SortByString": {
-			reason: "The Function should sort the Extras by the string value at the specified field path",
+			reason: "The Function should sort the required resources by the string value at the specified field path",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "c"),
 					resourceWithFieldPathValue("metadata.name", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
@@ -846,7 +846,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 				path: "metadata.name",
 			},
 			want: want{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
 					resourceWithFieldPathValue("metadata.name", "c"),
@@ -854,9 +854,9 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 			},
 		},
 		"SortByInt": {
-			reason: "The Function should sort the Extras by the int value at the specified field path",
+			reason: "The Function should sort the required resources by the int value at the specified field path",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("data.someInt", 3),
 					resourceWithFieldPathValue("data.someInt", 1),
 					resourceWithFieldPathValue("data.someInt", 2),
@@ -864,7 +864,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 				path: "data.someInt",
 			},
 			want: want{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("data.someInt", 1),
 					resourceWithFieldPathValue("data.someInt", 2),
 					resourceWithFieldPathValue("data.someInt", 3),
@@ -872,9 +872,9 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 			},
 		},
 		"SortByFloat": {
-			reason: "The Function should sort the Extras by the float value at the specified field path",
+			reason: "The Function should sort the required resources by the float value at the specified field path",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("data.someFloat", 1.3),
 					resourceWithFieldPathValue("data.someFloat", 1.1),
 					resourceWithFieldPathValue("data.someFloat", 1.2),
@@ -883,7 +883,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 				path: "data.someFloat",
 			},
 			want: want{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("data.someFloat", 1.1),
 					resourceWithFieldPathValue("data.someFloat", 1.2),
 					resourceWithFieldPathValue("data.someFloat", 1.3),
@@ -892,9 +892,9 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 			},
 		},
 		"InconsistentTypeSortByInt": {
-			reason: "The Function should sort the Extras by the int value at the specified field path",
+			reason: "The Function should sort the required resources by the int value at the specified field path",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("data.someInt", 3),
 					resourceWithFieldPathValue("data.someInt", 1),
 					resourceWithFieldPathValue("data.someInt", "2"),
@@ -908,7 +908,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 		"EmptyPath": {
 			reason: "The Function should return an error if the path is empty",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "c"),
 					resourceWithFieldPathValue("metadata.name", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
@@ -922,7 +922,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 		"InvalidPathAll": {
 			reason: "The Function should return no error if the path is invalid for all resources",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "c"),
 					resourceWithFieldPathValue("metadata.name", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
@@ -930,7 +930,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 				path: "metadata.invalid",
 			},
 			want: want{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "c"),
 					resourceWithFieldPathValue("metadata.name", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
@@ -940,7 +940,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 		"InvalidPathSome": {
 			reason: "The Function should return no error if the path is invalid for some resources, just use the rest of the resources zero value",
 			args: args{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.name", "c"),
 					resourceWithFieldPathValue("metadata.invalid", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
@@ -948,7 +948,7 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 				path: "metadata.name",
 			},
 			want: want{
-				extras: []resource.Extra{
+				requiredResources: []resource.Required{
 					resourceWithFieldPathValue("metadata.invalid", "a"),
 					resourceWithFieldPathValue("metadata.name", "b"),
 					resourceWithFieldPathValue("metadata.name", "c"),
@@ -959,14 +959,14 @@ func TestSortExtrasByFieldPath(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := sortExtrasByFieldPath(tc.args.extras, tc.args.path)
+			got := sortRequiredByFieldPath(tc.args.requiredResources, tc.args.path)
 			if diff := cmp.Diff(tc.want.err, got, cmpopts.EquateErrors()); diff != "" {
 				t.Errorf("%s\n(...): -want err, +got err:\n%s", tc.reason, diff)
 			}
 			if tc.want.err != nil {
 				return
 			}
-			if diff := cmp.Diff(tc.want.extras, tc.args.extras); diff != "" {
+			if diff := cmp.Diff(tc.want.requiredResources, tc.args.requiredResources); diff != "" {
 				t.Errorf("%s\n(...): -want, +got:\n%s", tc.reason, diff)
 			}
 		})

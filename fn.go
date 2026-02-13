@@ -69,8 +69,8 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	rsp.Requirements = requirements
 
-	if req.ExtraResources == nil {
-		f.log.Debug("No extra resources specified, exiting", "requirements", rsp.GetRequirements())
+	if req.RequiredResources == nil {
+		f.log.Debug("No required resources specified, exiting", "requirements", rsp.GetRequirements())
 		return rsp, nil
 	}
 
@@ -84,13 +84,13 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		f.log.Debug("Loaded Composition environment from Function context", "context-key", FunctionContextKeyEnvironment)
 	}
 
-	extraResources, err := request.GetExtraResources(req)
+	requiredResources, err := request.GetRequiredResources(req)
 	if err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot get Function input from %T", req))
 		return rsp, nil
 	}
 
-	envConfigs, err := getSelectedEnvConfigs(in, extraResources)
+	envConfigs, err := getSelectedEnvConfigs(in, requiredResources)
 	if err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot get selected environment configs"))
 		return rsp, nil
@@ -133,12 +133,12 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	return rsp, nil
 }
 
-func getSelectedEnvConfigs(in *v1beta1.Input, extraResources map[string][]resource.Extra) (envConfigs []unstructured.Unstructured, err error) {
+func getSelectedEnvConfigs(in *v1beta1.Input, requiredResources map[string][]resource.Required) (envConfigs []unstructured.Unstructured, err error) {
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
-		resources, ok := extraResources[extraResName]
+		resources, ok := requiredResources[extraResName]
 		if !ok {
-			// Skip if the extra resource was not requested (e.g., optional selector with no matchLabels)
+			// Skip if the required resource was not requested (e.g., optional selector with no matchLabels)
 			continue
 		}
 		switch config.GetType() {
@@ -165,20 +165,20 @@ func getSelectedEnvConfigs(in *v1beta1.Input, extraResources map[string][]resour
 	return envConfigs, nil
 }
 
-func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []resource.Extra) ([]unstructured.Unstructured, error) {
+func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []resource.Required) ([]unstructured.Unstructured, error) {
 	out := make([]unstructured.Unstructured, 0)
 	selector := config.Selector
 	switch selector.GetMode() {
 	case v1beta1.EnvironmentSourceSelectorSingleMode:
 		if len(resources) != 1 {
-			return nil, errors.Errorf("expected exactly one extra resource, got %d", len(resources))
+			return nil, errors.Errorf("expected exactly one required resource, got %d", len(resources))
 		}
 		out = append(out, *resources[0].Resource)
 	case v1beta1.EnvironmentSourceSelectorMultiMode:
 		if selector.MinMatch != nil && uint64(len(resources)) < *selector.MinMatch {
-			return nil, errors.Errorf("expected at least %d extra resources, got %d", *selector.MinMatch, len(resources))
+			return nil, errors.Errorf("expected at least %d required resources, got %d", *selector.MinMatch, len(resources))
 		}
-		if err := sortExtrasByFieldPath(resources, selector.GetSortByFieldPath()); err != nil {
+		if err := sortRequiredByFieldPath(resources, selector.GetSortByFieldPath()); err != nil {
 			return nil, err
 		}
 		if selector.MaxMatch != nil && uint64(len(resources)) > *selector.MaxMatch {
@@ -194,7 +194,7 @@ func processEnvironmentSource(config v1beta1.EnvironmentSource, resources []reso
 	return out, nil
 }
 
-func processSourceByReference(in *v1beta1.Input, config v1beta1.EnvironmentSource, resources []resource.Extra) (*unstructured.Unstructured, error) {
+func processSourceByReference(in *v1beta1.Input, config v1beta1.EnvironmentSource, resources []resource.Required) (*unstructured.Unstructured, error) {
 	envConfigName := config.Ref.Name
 	if len(resources) == 0 {
 		if in.Spec.Policy.IsResolutionPolicyOptional() {
@@ -203,24 +203,24 @@ func processSourceByReference(in *v1beta1.Input, config v1beta1.EnvironmentSourc
 		return nil, errors.Errorf("Required environment config %q not found", envConfigName)
 	}
 	if len(resources) > 1 {
-		return nil, errors.Errorf("expected exactly one extra resource %q, got %d", envConfigName, len(resources))
+		return nil, errors.Errorf("expected exactly one required resource %q, got %d", envConfigName, len(resources))
 	}
 	return resources[0].Resource, nil
 }
 
-func sortExtrasByFieldPath(extras []resource.Extra, path string) error { //nolint:gocyclo // TODO(phisco): refactor
+func sortRequiredByFieldPath(required []resource.Required, path string) error { //nolint:gocyclo // TODO(phisco): refactor
 	if path == "" {
 		return errors.New("cannot sort by empty field path")
 	}
 	p := make([]struct {
-		ec  resource.Extra
+		r   resource.Required
 		val any
-	}, len(extras))
+	}, len(required))
 
 	var t reflect.Type
-	for i := range extras {
-		p[i].ec = extras[i]
-		val, err := fieldpath.Pave(extras[i].Resource.Object).GetValue(path)
+	for i := range required {
+		p[i].r = required[i]
+		val, err := fieldpath.Pave(required[i].Resource.Object).GetValue(path)
 		if err != nil && !fieldpath.IsNotFound(err) {
 			return err
 		}
@@ -277,19 +277,19 @@ func sortExtrasByFieldPath(extras []resource.Extra, path string) error { //nolin
 		return err
 	}
 
-	for i := 0; i < len(extras); i++ {
-		extras[i] = p[i].ec
+	for i := 0; i < len(required); i++ {
+		required[i] = p[i].r
 	}
 	return nil
 }
 
 func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
-	extraResources := make(map[string]*fnv1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
+	resources := make(map[string]*fnv1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
 		switch config.Type {
 		case v1beta1.EnvironmentSourceTypeReference, "":
-			extraResources[extraResName] = &fnv1.ResourceSelector{
+			resources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       "EnvironmentConfig",
 				Match: &fnv1.ResourceSelector_MatchName{
@@ -317,7 +317,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 			if len(matchLabels) == 0 {
 				continue
 			}
-			extraResources[extraResName] = &fnv1.ResourceSelector{
+			resources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       "EnvironmentConfig",
 				Match: &fnv1.ResourceSelector_MatchLabels{
@@ -326,7 +326,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 			}
 		}
 	}
-	return &fnv1.Requirements{ExtraResources: extraResources}, nil
+	return &fnv1.Requirements{Resources: resources}, nil
 }
 
 func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]interface{}, error) {
