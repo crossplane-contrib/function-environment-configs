@@ -21,3 +21,5 @@ metadata:
 spec:
   crossplane:
     version: ">=v2.0.0-0"
+  capabilities:
+    - composition
