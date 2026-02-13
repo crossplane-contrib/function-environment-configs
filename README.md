@@ -3,7 +3,7 @@
 [![CI](https://github.com/crossplane-contrib/function-environment-configs/actions/workflows/ci.yml/badge.svg)](https://github.com/crossplane-contrib/function-environment-configs/actions/workflows/ci.yml) ![GitHub release (latest SemVer)](https://img.shields.io/github/release/crossplane-contrib/function-environment-configs)
 
 > [!WARNING]
-> This function relies on functionalities only available in Crossplane 1.15 and
+> This function relies on functionalities only available in Crossplane 2.0 and
 > later. It will not work with earlier versions.
 
 > [!IMPORTANT]  

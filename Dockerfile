@@ -13,6 +13,8 @@ FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION} AS build
 WORKDIR /fn
 
 # Most functions don't want or need CGo support, so we disable it.
+# If CGo support is needed make sure to also change the base image to one that
+# includes glibc, like 'distroless/base'.
 ENV CGO_ENABLED=0
 
 # We run go mod download in a separate step so that we can cache its results.

@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/crossplane/crossplane-runtime/pkg/errors"
-	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
@@ -25,7 +25,7 @@ import (
 
 const (
 	// FunctionContextKeyEnvironment is a well-known Context key where the computed Environment
-	// will be stored, so that Crossplane v1 and other functions can access it, e.g. function-patch-and-transform.
+	// will be stored, so that Crossplane and other functions can access it, e.g. function-patch-and-transform.
 	FunctionContextKeyEnvironment = "apiextensions.crossplane.io/environment"
 )
 
