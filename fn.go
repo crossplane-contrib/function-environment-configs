@@ -1,20 +1,22 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"sort"
 
+	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
 	"google.golang.org/protobuf/types/known/structpb"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
-	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
-	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
@@ -250,37 +252,58 @@ func sortRequiredByFieldPath(required []resource.Required, path string) error { 
 		if valj == nil {
 			valj = reflect.Zero(t).Interface()
 		}
-		switch t.Kind() { //nolint:exhaustive // we only support these types
-		case reflect.Float64:
-			return vali.(float64) < valj.(float64)
-		case reflect.Float32:
-			return vali.(float32) < valj.(float32)
-		case reflect.Int64:
-			return vali.(int64) < valj.(int64)
-		case reflect.Int32:
-			return vali.(int32) < valj.(int32)
-		case reflect.Int16:
-			return vali.(int16) < valj.(int16)
-		case reflect.Int8:
-			return vali.(int8) < valj.(int8)
-		case reflect.Int:
-			return vali.(int) < valj.(int)
-		case reflect.String:
-			return vali.(string) < valj.(string)
-		default:
-			// should never happen
-			err = errors.Errorf("unsupported type %q for sorting", t)
+		less, lessErr := lessByKind(t.Kind(), vali, valj)
+		if lessErr != nil {
+			err = lessErr
 			return false
 		}
+		return less
 	})
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < len(required); i++ {
+	for i := range required {
 		required[i] = p[i].r
 	}
 	return nil
+}
+
+func lessByKind(kind reflect.Kind, a, b any) (bool, error) {
+	switch kind { //nolint:exhaustive // we only support these types
+	case reflect.Float64:
+		return lessAs[float64](a, b)
+	case reflect.Float32:
+		return lessAs[float32](a, b)
+	case reflect.Int64:
+		return lessAs[int64](a, b)
+	case reflect.Int32:
+		return lessAs[int32](a, b)
+	case reflect.Int16:
+		return lessAs[int16](a, b)
+	case reflect.Int8:
+		return lessAs[int8](a, b)
+	case reflect.Int:
+		return lessAs[int](a, b)
+	case reflect.String:
+		return lessAs[string](a, b)
+	default:
+		return false, errors.Errorf("unsupported type %q for sorting", kind)
+	}
+}
+
+func lessAs[T cmp.Ordered](a, b any) (bool, error) {
+	av, ok := a.(T)
+	if !ok {
+		var t T
+		return false, errors.Errorf("cannot compare type %T as %T", a, t)
+	}
+	bv, ok := b.(T)
+	if !ok {
+		var t T
+		return false, errors.Errorf("cannot compare type %T as %T", b, t)
+	}
+	return cmp.Less(av, bv), nil
 }
 
 func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
@@ -329,10 +352,10 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 	return &fnv1.Requirements{Resources: resources}, nil
 }
 
-func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]interface{}, error) {
-	merged := map[string]interface{}{}
+func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]any, error) {
+	merged := map[string]any{}
 	for _, c := range configs {
-		data := map[string]interface{}{}
+		data := map[string]any{}
 		if err := fieldpath.Pave(c.Object).GetValueInto("data", &data); err != nil {
 			return nil, errors.Wrapf(err, "cannot get data from environment config %q", c.GetName())
 		}
@@ -342,15 +365,13 @@ func mergeEnvConfigsData(configs []unstructured.Unstructured) (map[string]interf
 	return merged, nil
 }
 
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
+func mergeMaps(a, b map[string]any) map[string]any {
+	out := make(map[string]any, len(a))
+	maps.Copy(out, a)
 	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
+		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
+				if bv, ok := bv.(map[string]any); ok {
 					out[k] = mergeMaps(bv, v)
 					continue
 				}
@@ -361,8 +382,8 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-func unmarshalData(data map[string]extv1.JSON) (map[string]interface{}, error) {
-	res := map[string]interface{}{}
+func unmarshalData(data map[string]extv1.JSON) (map[string]any, error) {
+	res := map[string]any{}
 	raw, err := json.Marshal(data)
 	if err != nil {
 		return nil, err

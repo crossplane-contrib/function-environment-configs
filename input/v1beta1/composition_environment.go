@@ -17,9 +17,8 @@ limitations under the License.
 */
 
 import (
-	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 // An InputSpec specifies the environment for rendering composed
@@ -142,7 +141,6 @@ const (
 
 // An EnvironmentSourceSelector selects an EnvironmentConfig via labels.
 type EnvironmentSourceSelector struct {
-
 	// Mode specifies retrieval strategy: "Single" or "Multiple".
 	// +kubebuilder:validation:Enum=Single;Multiple
 	// +kubebuilder:default=Single
