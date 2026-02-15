@@ -1,0 +1,208 @@
+package v1beta1
+
+import (
+	"encoding/json"
+
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+)
+
+// TransformType is the type of a transform.
+type TransformType string
+
+// Accepted TransformTypes.
+const (
+	TransformTypeMap    TransformType = "map"
+	TransformTypeMatch  TransformType = "match"
+	TransformTypeString TransformType = "string"
+)
+
+// Transform is a unit of process whose input is transformed into an output with
+// the supplied configuration.
+type Transform struct {
+	// Type of the transform to be run.
+	// +kubebuilder:validation:Enum=map;match;string
+	Type TransformType `json:"type"`
+
+	// Map uses the input as a key in the given map and returns the value.
+	// +optional
+	Map *MapTransform `json:"map,omitempty"`
+
+	// Match is a more complex version of Map that matches a list of patterns.
+	// +optional
+	Match *MatchTransform `json:"match,omitempty"`
+
+	// String is used to transform the input into a string or a different kind
+	// of string. Note that the input does not necessarily need to be a string.
+	// +optional
+	String *StringTransform `json:"string,omitempty"`
+}
+
+// MapTransform returns a value for the input from the given map.
+type MapTransform struct {
+	// Pairs is the map that will be used for transform.
+	// +optional
+	Pairs map[string]extv1.JSON `json:",inline"`
+}
+
+// NOTE: The Kubernetes JSON decoder doesn't seem to like inlining a map
+// into a struct - doing so results in a seemingly successful unmarshal of the
+// data, but an empty map. We must keep the ,inline tag nevertheless in order to
+// trick the CRD generator into thinking MapTransform is an arbitrary map (i.e.
+// generating a validation schema with string additionalProperties), but the
+// actual marshalling is handled by the marshal methods below.
+
+// UnmarshalJSON into this MapTransform.
+func (m *MapTransform) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &m.Pairs)
+}
+
+// MarshalJSON from this MapTransform.
+func (m *MapTransform) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.Pairs)
+}
+
+// MatchFallbackTo defines how a match operation will fallback.
+type MatchFallbackTo string
+
+// Valid MatchFallbackTo.
+const (
+	MatchFallbackToTypeValue MatchFallbackTo = "Value"
+	MatchFallbackToTypeInput MatchFallbackTo = "Input"
+)
+
+// MatchTransform is a more complex version of a map transform that matches a
+// list of patterns.
+type MatchTransform struct {
+	// The patterns that should be tested against the input string.
+	// Patterns are tested in order. The value of the first match is used as
+	// result of this transform.
+	Patterns []MatchTransformPattern `json:"patterns,omitempty"`
+
+	// The fallback value that should be returned by the transform if no pattern
+	// matches.
+	FallbackValue extv1.JSON `json:"fallbackValue,omitempty"`
+
+	// Determines to what value the transform should fallback if no pattern matches.
+	// +optional
+	// +kubebuilder:validation:Enum=Value;Input
+	// +kubebuilder:default=Value
+	FallbackTo MatchFallbackTo `json:"fallbackTo,omitempty"`
+}
+
+// MatchTransformPatternType defines the type of a MatchTransformPattern.
+type MatchTransformPatternType string
+
+// Valid MatchTransformPatternTypes.
+const (
+	MatchTransformPatternTypeLiteral MatchTransformPatternType = "literal"
+	MatchTransformPatternTypeRegexp  MatchTransformPatternType = "regexp"
+)
+
+// MatchTransformPattern is a transform that returns the value that matches a
+// pattern.
+type MatchTransformPattern struct {
+	// Type specifies how the pattern matches the input.
+	//
+	// * `literal` - the pattern value has to exactly match (case sensitive) the
+	// input string. This is the default.
+	//
+	// * `regexp` - the pattern treated as a regular expression against
+	// which the input string is tested. Crossplane will throw an error if the
+	// key is not a valid regexp.
+	//
+	// +kubebuilder:validation:Enum=literal;regexp
+	// +kubebuilder:default=literal
+	Type MatchTransformPatternType `json:"type"`
+
+	// Literal exactly matches the input string (case sensitive).
+	// Is required if `type` is `literal`.
+	Literal *string `json:"literal,omitempty"`
+
+	// Regexp to match against the input string.
+	// Is required if `type` is `regexp`.
+	Regexp *string `json:"regexp,omitempty"`
+
+	// The value that is used as result of the transform if the pattern matches.
+	Result extv1.JSON `json:"result"`
+}
+
+// StringTransformType transforms a string.
+type StringTransformType string
+
+// Accepted StringTransformTypes.
+const (
+	StringTransformTypeFormat     StringTransformType = "Format" // Default
+	StringTransformTypeConvert    StringTransformType = "Convert"
+	StringTransformTypeTrimPrefix StringTransformType = "TrimPrefix"
+	StringTransformTypeTrimSuffix StringTransformType = "TrimSuffix"
+	StringTransformTypeRegexp     StringTransformType = "Regexp"
+	StringTransformTypeReplace    StringTransformType = "Replace"
+)
+
+// StringConversionType converts a string.
+type StringConversionType string
+
+// Accepted StringConversionTypes.
+const (
+	StringConversionTypeToUpper StringConversionType = "ToUpper"
+	StringConversionTypeToLower StringConversionType = "ToLower"
+)
+
+// StringTransform returns a string given the supplied input.
+type StringTransform struct {
+	// Type of the string transform to be run.
+	// +kubebuilder:validation:Enum=Format;Convert;TrimPrefix;TrimSuffix;Regexp;Replace
+	// +kubebuilder:default=Format
+	Type StringTransformType `json:"type"`
+
+	// Format the input using a Go format string. See
+	// https://golang.org/pkg/fmt/ for details.
+	// +optional
+	Format *string `json:"fmt,omitempty"`
+
+	// Optional conversion method to be specified.
+	// `ToUpper` and `ToLower` change the letter case of the input string.
+	// +optional
+	// +kubebuilder:validation:Enum=ToUpper;ToLower
+	Convert *StringConversionType `json:"convert,omitempty"`
+
+	// Trim the prefix or suffix from the input
+	// +optional
+	Trim *string `json:"trim,omitempty"`
+
+	// Extract a match from the input using a regular expression.
+	// +optional
+	Regexp *StringTransformRegexp `json:"regexp,omitempty"`
+
+	// Search/Replace applied to the input string.
+	// +optional
+	Replace *StringTransformReplace `json:"replace,omitempty"`
+}
+
+// StringTransformRegexp extracts a match from the input using a regular
+// expression.
+type StringTransformRegexp struct {
+	// Match string. May optionally include submatches, aka capture groups.
+	// See https://pkg.go.dev/regexp/ for details.
+	Match string `json:"match"`
+
+	// Group number to match. 0 (the default) matches the entire expression.
+	// +optional
+	Group *int `json:"group,omitempty"`
+
+	// Replace is the replacement string applied using regexp backreferences.
+	// When set, the transform uses ReplaceAllString with backreference support
+	// (e.g. ${1}, ${2}) instead of extracting a single group.
+	// Mutually exclusive with Group.
+	// +optional
+	Replace *string `json:"replace,omitempty"`
+}
+
+// StringTransformReplace replaces the search string with the replacement string.
+type StringTransformReplace struct {
+	// The Search string to match.
+	Search string `json:"search"`
+
+	// The Replace string replaces all occurrences of the search string.
+	Replace string `json:"replace"`
+}
