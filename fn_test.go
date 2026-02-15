@@ -4,6 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
+	"github.com/crossplane/function-sdk-go/resource"
+	"github.com/crossplane/function-sdk-go/response"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -11,12 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
-
-	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
-	"github.com/crossplane/function-sdk-go/resource"
-	"github.com/crossplane/function-sdk-go/response"
 )
 
 func TestRunFunction(t *testing.T) {
@@ -769,6 +768,438 @@ func TestRunFunction(t *testing.T) {
 								"g": "overridden-from-env-config-2-ok",
 								"h": "override-from-env-config-1-ok"
 							}`)),
+						},
+					},
+				},
+			},
+		},
+		"SelectorWithStringTransform": {
+			reason: "The Function should apply string transforms to the value from the field path before using it as a label selector",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"region": "us-east-1-abc"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "region",
+												"valueFromFieldPath": "spec.region",
+												"fromFieldPathPolicy": "Required",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "Regexp",
+															"regexp": {
+																"match": "^([^-]+-[^-]+-[^-]+)",
+																"group": 1
+															}
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"region": "us-east-1",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"SelectorWithChainedTransforms": {
+			reason: "The Function should apply multiple chained transforms sequentially",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"envLabel": "My-Prefix-Value"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "env",
+												"valueFromFieldPath": "spec.envLabel",
+												"fromFieldPathPolicy": "Required",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "TrimPrefix",
+															"trim": "My-Prefix-"
+														}
+													},
+													{
+														"type": "string",
+														"string": {
+															"type": "Convert",
+															"convert": "ToLower"
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"env": "value",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"SelectorWithTransformOnNonStringField": {
+			reason: "The Function should handle non-string field values (e.g. boolean) and convert them to label strings",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {
+									"isProduction": true
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "production",
+												"valueFromFieldPath": "spec.isProduction",
+												"fromFieldPathPolicy": "Required"
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"production": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"SelectorWithTransformOptionalFieldMissing": {
+			reason: "The Function should skip the selector when an optional field path is missing, even if transforms are configured",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "env",
+												"valueFromFieldPath": "spec.missingField",
+												"fromFieldPathPolicy": "Optional",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "Convert",
+															"convert": "ToUpper"
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:         &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results:      []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{ExtraResources: map[string]*fnv1.ResourceSelector{}},
+				},
+			},
+		},
+		"SelectorWithMetadataLabelFieldPath": {
+			reason: "The Function should resolve bracket notation field paths like metadata.labels[crossplane.io/claim-namespace]",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr",
+									"labels": {
+										"crossplane.io/claim-namespace": "team-alpha"
+									}
+								},
+								"spec": {
+									"region": "us-east-1-abc"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "region",
+												"valueFromFieldPath": "spec.region",
+												"fromFieldPathPolicy": "Required",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "Regexp",
+															"regexp": {
+																"match": "^([^-]+-[^-]+-[0-9]+)",
+																"group": 1
+															}
+														}
+													}
+												]
+											},
+											{
+												"key": "namespace",
+												"valueFromFieldPath": "metadata.labels[crossplane.io/claim-namespace]",
+												"fromFieldPathPolicy": "Required",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "TrimPrefix",
+															"trim": "team-"
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta:    &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{},
+					Requirements: &fnv1.Requirements{
+						ExtraResources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"region":    "us-east-1",
+											"namespace": "alpha",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"SelectorWithTransformRequiredFieldMissing": {
+			reason: "The Function should return a fatal result when a required field path is missing, even if transforms are configured",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								},
+								"spec": {}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "template.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"key": "env",
+												"valueFromFieldPath": "spec.missingField",
+												"fromFieldPathPolicy": "Required",
+												"transforms": [
+													{
+														"type": "string",
+														"string": {
+															"type": "Convert",
+															"convert": "ToUpper"
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{
+						{
+							Severity: fnv1.Severity_SEVERITY_FATAL,
+							Target:   ptr.To(fnv1.Target_TARGET_COMPOSITE),
 						},
 					},
 				},
