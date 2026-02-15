@@ -1,0 +1,81 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: function-environment-configs
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+          - type: Selector
+            selector:
+              mode: Single
+              matchLabels:
+                # 1. Regexp group extract:
+                #    "us-east-1-abc" → extract group 1 → "us-east-1"
+                - key: region
+                  valueFromFieldPath: spec.region
+                  transforms:
+                    - type: string
+                      string:
+                        type: Regexp
+                        regexp:
+                          match: "^([^-]+-[^-]+-[0-9]+)"
+                          group: 1
+
+                # 2. Regexp replace with backreferences:
+                #    "team-alpha" → "${1}-environment-config" → "alpha-environment-config"
+                - key: config
+                  valueFromFieldPath: "metadata.labels[crossplane.io/claim-namespace]"
+                  transforms:
+                    - type: string
+                      string:
+                        type: Regexp
+                        regexp:
+                          match: "^team-(.+)$"
+                          replace: "${1}-environment-config"
+
+                # 3. Map transform:
+                #    "production" → "prod"
+                - key: tier
+                  valueFromFieldPath: spec.tier
+                  transforms:
+                    - type: map
+                      map:
+                        production: "prod"
+                        staging: "stage"
+                        development: "dev"
+
+                # 4. Convert to lowercase:
+                #    "CRITICAL" → "critical"
+                - key: priority
+                  valueFromFieldPath: spec.priority
+                  transforms:
+                    - type: string
+                      string:
+                        type: Convert
+                        convert: ToLower
+  - step: go-templating
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          ---
+          apiVersion: example.crossplane.io/v1
+          kind: XR
+          status:
+            fromEnv: {{ index .context "apiextensions.crossplane.io/environment" "region" "endpoint" }}
+            team: {{ index .context "apiextensions.crossplane.io/environment" "team" }}

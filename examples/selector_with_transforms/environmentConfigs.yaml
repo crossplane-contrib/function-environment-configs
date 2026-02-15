@@ -1,0 +1,45 @@
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: env-us-east-1-alpha-prod-critical
+  labels:
+    region: "us-east-1"
+    config: "alpha-environment-config"
+    tier: "prod"
+    priority: "critical"
+data:
+  region:
+    name: us-east-1
+    endpoint: https://us-east-1.example.com
+  team: alpha
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: env-us-east-1-beta-prod-critical
+  labels:
+    region: "us-east-1"
+    config: "beta-environment-config"
+    tier: "prod"
+    priority: "critical"
+data:
+  region:
+    name: us-east-1
+    endpoint: https://us-east-1.example.com
+  team: beta
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: env-eu-west-1-alpha-stage-low
+  labels:
+    region: "eu-west-1"
+    config: "alpha-environment-config"
+    tier: "stage"
+    priority: "low"
+data:
+  region:
+    name: eu-west-1
+    endpoint: https://eu-west-1.example.com
+  team: alpha
