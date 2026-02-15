@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: inputs.environmentconfigs.fn.crossplane.io
 spec:
   group: environmentconfigs.fn.crossplane.io
@@ -58,12 +58,10 @@ spec:
                   resources are stored in the composite resource at
                   `spec.environmentConfigRefs` and is only updated if it is null.
 
-
                   The list of references is used to compute an in-memory environment at
                   compose time. The data of all object is merged in the order they are
                   listed, meaning the values of EnvironmentConfigs with a larger index take
                   priority over ones with smaller indices.
-
 
                   The computed environment can be accessed in a composition using
                   `FromEnvironmentFieldPath` and `CombineFromEnvironment` patches.
@@ -109,6 +107,174 @@ spec:
                               key:
                                 description: Key of the label to match.
                                 type: string
+                              transforms:
+                                description: |-
+                                  Transforms is an optional list of transforms to apply to the value
+                                  resolved from the composite resource before using it for label matching.
+                                  Transforms are applied sequentially. Only applicable when type is
+                                  FromCompositeFieldPath.
+                                items:
+                                  description: |-
+                                    Transform is a unit of process whose input is transformed into an output with
+                                    the supplied configuration.
+                                  properties:
+                                    map:
+                                      additionalProperties:
+                                        x-kubernetes-preserve-unknown-fields: true
+                                      description: Map uses the input as a key in
+                                        the given map and returns the value.
+                                      type: object
+                                    match:
+                                      description: Match is a more complex version
+                                        of Map that matches a list of patterns.
+                                      properties:
+                                        fallbackTo:
+                                          default: Value
+                                          description: Determines to what value the
+                                            transform should fallback if no pattern
+                                            matches.
+                                          enum:
+                                          - Value
+                                          - Input
+                                          type: string
+                                        fallbackValue:
+                                          description: |-
+                                            The fallback value that should be returned by the transform if no pattern
+                                            matches.
+                                          x-kubernetes-preserve-unknown-fields: true
+                                        patterns:
+                                          description: |-
+                                            The patterns that should be tested against the input string.
+                                            Patterns are tested in order. The value of the first match is used as
+                                            result of this transform.
+                                          items:
+                                            description: |-
+                                              MatchTransformPattern is a transform that returns the value that matches a
+                                              pattern.
+                                            properties:
+                                              literal:
+                                                description: |-
+                                                  Literal exactly matches the input string (case sensitive).
+                                                  Is required if `type` is `literal`.
+                                                type: string
+                                              regexp:
+                                                description: |-
+                                                  Regexp to match against the input string.
+                                                  Is required if `type` is `regexp`.
+                                                type: string
+                                              result:
+                                                description: The value that is used
+                                                  as result of the transform if the
+                                                  pattern matches.
+                                                x-kubernetes-preserve-unknown-fields: true
+                                              type:
+                                                default: literal
+                                                description: |-
+                                                  Type specifies how the pattern matches the input.
+
+                                                  * `literal` - the pattern value has to exactly match (case sensitive) the
+                                                  input string. This is the default.
+
+                                                  * `regexp` - the pattern treated as a regular expression against
+                                                  which the input string is tested. Crossplane will throw an error if the
+                                                  key is not a valid regexp.
+                                                enum:
+                                                - literal
+                                                - regexp
+                                                type: string
+                                            required:
+                                            - result
+                                            - type
+                                            type: object
+                                          type: array
+                                      type: object
+                                    string:
+                                      description: |-
+                                        String is used to transform the input into a string or a different kind
+                                        of string. Note that the input does not necessarily need to be a string.
+                                      properties:
+                                        convert:
+                                          description: |-
+                                            Optional conversion method to be specified.
+                                            `ToUpper` and `ToLower` change the letter case of the input string.
+                                          enum:
+                                          - ToUpper
+                                          - ToLower
+                                          type: string
+                                        fmt:
+                                          description: |-
+                                            Format the input using a Go format string. See
+                                            https://golang.org/pkg/fmt/ for details.
+                                          type: string
+                                        regexp:
+                                          description: Extract a match from the input
+                                            using a regular expression.
+                                          properties:
+                                            group:
+                                              description: Group number to match.
+                                                0 (the default) matches the entire
+                                                expression.
+                                              type: integer
+                                            match:
+                                              description: |-
+                                                Match string. May optionally include submatches, aka capture groups.
+                                                See https://pkg.go.dev/regexp/ for details.
+                                              type: string
+                                            replace:
+                                              description: |-
+                                                Replace is the replacement string applied using regexp backreferences.
+                                                When set, the transform uses ReplaceAllString with backreference support
+                                                (e.g. ${1}, ${2}) instead of extracting a single group.
+                                                Mutually exclusive with Group.
+                                              type: string
+                                          required:
+                                          - match
+                                          type: object
+                                        replace:
+                                          description: Search/Replace applied to the
+                                            input string.
+                                          properties:
+                                            replace:
+                                              description: The Replace string replaces
+                                                all occurrences of the search string.
+                                              type: string
+                                            search:
+                                              description: The Search string to match.
+                                              type: string
+                                          required:
+                                          - replace
+                                          - search
+                                          type: object
+                                        trim:
+                                          description: Trim the prefix or suffix from
+                                            the input
+                                          type: string
+                                        type:
+                                          default: Format
+                                          description: Type of the string transform
+                                            to be run.
+                                          enum:
+                                          - Format
+                                          - Convert
+                                          - TrimPrefix
+                                          - TrimSuffix
+                                          - Regexp
+                                          - Replace
+                                          type: string
+                                      required:
+                                      - type
+                                      type: object
+                                    type:
+                                      description: Type of the transform to be run.
+                                      enum:
+                                      - map
+                                      - match
+                                      - string
+                                      type: string
+                                  required:
+                                  - type
+                                  type: object
+                                type: array
                               type:
                                 default: FromCompositeFieldPath
                                 description: Type specifies where the value for a

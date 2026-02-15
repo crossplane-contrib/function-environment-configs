@@ -222,6 +222,13 @@ type EnvironmentSourceSelectorLabelMatcher struct {
 
 	// Value specifies a literal label value.
 	Value *string `json:"value,omitempty"`
+
+	// Transforms is an optional list of transforms to apply to the value
+	// resolved from the composite resource before using it for label matching.
+	// Transforms are applied sequentially. Only applicable when type is
+	// FromCompositeFieldPath.
+	// +optional
+	Transforms []Transform `json:"transforms,omitempty"`
 }
 
 // FromFieldPathIsOptional returns true if the FromFieldPathPolicy is set to
