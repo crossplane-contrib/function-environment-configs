@@ -111,6 +111,10 @@ type EnvironmentSource struct {
 	// Selector selects EnvironmentConfig(s) via labels.
 	// +optional
 	Selector *EnvironmentSourceSelector `json:"selector,omitempty"`
+
+	// ToFieldPath specifies where in the environment to load the EnvironmentConfig(s).
+	// +optional
+	ToFieldPath *string `json:"toFieldPath,omitempty"`
 }
 
 // GetType returns the type of the environment source, returning the default if not set.
