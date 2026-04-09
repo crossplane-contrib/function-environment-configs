@@ -21,7 +21,7 @@ env:
   # These environment variables are important to the Crossplane CLI install.sh
   # script. They determine what version it installs.
   XP_CHANNEL: stable
-  XP_VERSION: v1.20.0
+  XP_VERSION: v2.2.0
 
   # This CI job will automatically push new builds to xpkg.upbound.io if the
   # XPKG_ACCESS_ID and XPKG_TOKEN secrets are set in the GitHub respository (or
