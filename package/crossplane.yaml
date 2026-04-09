@@ -20,4 +20,6 @@ metadata:
       spec.environment.environmentConfigs.
 spec:
   crossplane:
-    version: ">=v1.18.0-0"
+    version: ">=v2.0.0-0"
+  capabilities:
+    - composition
