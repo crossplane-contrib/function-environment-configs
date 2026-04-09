@@ -88,7 +88,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	requiredResources, err := request.GetRequiredResources(req)
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot get Function input from %T", req))
+		response.Fatal(rsp, errors.Wrapf(err, "cannot get required resources from %T", req))
 		return rsp, nil
 	}
 
