@@ -1,0 +1,10 @@
+apiVersion: example.crossplane.io/v1
+kind: XR
+metadata:
+  name: example-xr
+  labels:
+    crossplane.io/claim-namespace: team-alpha
+spec:
+  region: us-east-1-abc
+  tier: production
+  priority: CRITICAL
