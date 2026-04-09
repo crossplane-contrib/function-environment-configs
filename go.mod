@@ -2,7 +2,7 @@ module github.com/crossplane-contrib/function-environment-configs
 
 go 1.23
 
-toolchain go1.24.4
+toolchain go1.26.2
 
 require (
 	github.com/alecthomas/kong v1.14.0
