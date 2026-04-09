@@ -360,7 +360,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 	return &fnv1.Requirements{Resources: resources}, nil
 }
 
-func mergeEnvConfigsData(configsByField map[string][]unstructured.Unstructured) (map[string]interface{}, error) {
+func mergeEnvConfigsData(configsByField map[string][]unstructured.Unstructured) (map[string]any, error) {
 	merged := map[string]any{}
 	for fieldPath, configs := range configsByField {
 		for _, c := range configs {
