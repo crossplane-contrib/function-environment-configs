@@ -9,20 +9,18 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/crossplane-contrib/function-environment-configs/input/v1beta1"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
-	"google.golang.org/protobuf/types/known/structpb"
-	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
-
-	"github.com/crossplane-contrib/function-environment-configs/input/v1beta1"
+	"google.golang.org/protobuf/types/known/structpb"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -335,14 +333,22 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 					// TODO validate value not to be nil
 					matchLabels[selector.Key] = *selector.Value
 				case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath:
-					value, err := fieldpath.Pave(xr.Resource.Object).GetString(*selector.ValueFromFieldPath)
+					val, err := fieldpath.Pave(xr.Resource.Object).GetValue(*selector.ValueFromFieldPath)
 					if err != nil {
 						if !selector.FromFieldPathIsOptional() {
 							return nil, errors.Wrapf(err, "cannot get value from field path %q", *selector.ValueFromFieldPath)
 						}
 						continue
 					}
-					matchLabels[selector.Key] = value
+					// Apply transforms if any are specified.
+					if len(selector.Transforms) > 0 {
+						val, err = ResolveTransforms(selector.Transforms, val)
+						if err != nil {
+							return nil, errors.Wrapf(err, "cannot apply transforms for label %q from field path %q", selector.Key, *selector.ValueFromFieldPath)
+						}
+					}
+					// Labels are always strings.
+					matchLabels[selector.Key] = fmt.Sprintf("%v", val)
 				}
 			}
 			if len(matchLabels) == 0 {
