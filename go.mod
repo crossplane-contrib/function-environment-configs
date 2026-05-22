@@ -1,6 +1,6 @@
 module github.com/crossplane-contrib/function-environment-configs
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/alecthomas/kong v1.15.0
