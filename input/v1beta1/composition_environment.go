@@ -17,7 +17,8 @@ limitations under the License.
 */
 
 import (
-	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	fieldpath "github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
+	xpv2 "github.com/crossplane/crossplane/apis/v2/core/v2"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -62,7 +63,7 @@ type Policy struct {
 	// 	require environmentConfigRefs to be moved to the XR's status, as
 	// 	Functions can not write to the XR spec. Right now we behave as if
 	// 	Always was set.
-	// Resolve *xpv1.ResolvePolicy `json:"resolve,omitempty"`
+	// Resolve *xpv2.ResolvePolicy `json:"resolve,omitempty"`
 
 	// Resolution specifies whether resolution of this reference is required.
 	// The default is 'Required', which means the reconcile will fail if the
@@ -71,7 +72,7 @@ type Policy struct {
 	// +optional
 	// +kubebuilder:default=Required
 	// +kubebuilder:validation:Enum=Required;Optional
-	Resolution *xpv1.ResolutionPolicy `json:"resolution,omitempty"`
+	Resolution *xpv2.ResolutionPolicy `json:"resolution,omitempty"`
 }
 
 // IsResolutionPolicyOptional checks whether the resolution policy of relevant
@@ -81,7 +82,7 @@ func (p *Policy) IsResolutionPolicyOptional() bool {
 		return false
 	}
 
-	return *p.Resolution == xpv1.ResolutionPolicyOptional
+	return *p.Resolution == xpv2.ResolutionPolicyOptional
 }
 
 // EnvironmentSourceType specifies the way the EnvironmentConfig is selected.
@@ -255,8 +256,8 @@ type PatchPolicy struct {
 	// the specified path does not exist.
 	// +kubebuilder:validation:Enum=Optional;Required
 	// +optional
-	FromFieldPath *FromFieldPathPolicy `json:"fromFieldPath,omitempty"`
-	MergeOptions  *xpv1.MergeOptions   `json:"mergeOptions,omitempty"`
+	FromFieldPath *FromFieldPathPolicy    `json:"fromFieldPath,omitempty"`
+	MergeOptions  *fieldpath.MergeOptions `json:"mergeOptions,omitempty"`
 }
 
 // GetFromFieldPathPolicy returns the FromFieldPathPolicy for this PatchPolicy, defaulting to FromFieldPathPolicyOptional if not specified.
