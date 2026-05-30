@@ -113,6 +113,7 @@ spec:
                                   label comes from.
                                 enum:
                                 - FromCompositeFieldPath
+                                - FromEnvironmentFieldPath
                                 - Value
                                 type: string
                               value:

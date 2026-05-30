@@ -53,6 +53,15 @@ func TestRunFunction(t *testing.T) {
 							}`),
 						},
 					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"existingEnvSelectorLabel": "someMoreEnvBar"
+							}`)),
+						},
+					},
 					Input: resource.MustStructJSON(`{
 						"apiVersion": "template.fn.crossplane.io/v1beta1",
 						"kind": "Input",
@@ -108,6 +117,34 @@ func TestRunFunction(t *testing.T) {
 											}
 										]
 									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "FromEnvironmentFieldPath",
+												"key": "someMoreEnvFoo",
+												"valueFromFieldPath": "missingEnvSelectorLabel",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "FromEnvironmentFieldPath",
+												"key": "someMoreEnvFoo",
+												"valueFromFieldPath": "existingEnvSelectorLabel",
+												"fromFieldPathPolicy": "Required"
+											}
+										]
+									}
 								}
 							]
 						}
@@ -157,6 +194,27 @@ func TestRunFunction(t *testing.T) {
 									},
 								},
 							},
+							// environment-config-5 is not requested because it was optional
+							"environment-config-6": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"someMoreEnvFoo": "someMoreEnvBar",
+										},
+									},
+								},
+							},
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"existingEnvSelectorLabel": "someMoreEnvBar"
+							}`)),
 						},
 					},
 				},
@@ -179,6 +237,15 @@ func TestRunFunction(t *testing.T) {
 									"existingEnvSelectorLabel": "someMoreBar"
 								}
 							}`),
+						},
+					},
+					Context: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
+								"apiVersion": "internal.crossplane.io/v1alpha1",
+								"kind": "Environment",
+								"existingEnvSelectorLabel": "someMoreEnvBar"
+							}`)),
 						},
 					},
 					RequiredResources: map[string]*fnv1.Resources{
@@ -276,6 +343,25 @@ func TestRunFunction(t *testing.T) {
 								},
 							},
 						},
+						"environment-config-6": {
+							Items: []*fnv1.Resource{
+								{
+									Resource: resource.MustStructJSON(`{
+									"apiVersion": "apiextensions.crossplane.io/v1beta1",
+									"kind": "EnvironmentConfig",
+									"metadata": {
+										"name": "my-sixth-env-config",
+										"labels": {
+											"someMoreEnvFoo": "someMoreEnvBar"
+										}
+									},
+									"data": {
+										"seventhKey": "seventhVal"
+									}
+								}`),
+								},
+							},
+						},
 					},
 					Input: resource.MustStructJSON(`{
 						"apiVersion": "template.fn.crossplane.io/v1beta1",
@@ -332,6 +418,33 @@ func TestRunFunction(t *testing.T) {
 											}
 										]
 									}
+								},{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "FromEnvironmentFieldPath",
+												"key": "someMoreEnvFoo",
+												"valueFromFieldPath": "missingEnvSelectorLabel",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+											  "type": "FromEnvironmentFieldPath",
+												"key": "someMoreEnvFoo",
+												"valueFromFieldPath": "existingEnvSelectorLabel",
+												"fromFieldPathPolicy": "Required"
+											}
+										]
+									}
 								}
 							]
 						}
@@ -381,6 +494,18 @@ func TestRunFunction(t *testing.T) {
 									},
 								},
 							},
+							// environment-config-5 is not requested because it was optional
+							"environment-config-6": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "EnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"someMoreEnvFoo": "someMoreEnvBar",
+										},
+									},
+								},
+							},
 						},
 					},
 					Context: &structpb.Struct{
@@ -388,12 +513,14 @@ func TestRunFunction(t *testing.T) {
 							FunctionContextKeyEnvironment: structpb.NewStructValue(resource.MustStructJSON(`{
 								"apiVersion": "internal.crossplane.io/v1alpha1",
 								"kind": "Environment",
+								"existingEnvSelectorLabel": "someMoreEnvBar",
 								"firstKey": "firstVal",
 								"secondKey": "secondVal-ok",
 								"thirdKey": "thirdVal",
 								"fourthKey": "fourthVal-b",
 								"fifthKey": "fifthVal",
-								"sixthKey": "sixthVal"
+								"sixthKey": "sixthVal",
+								"seventhKey": "seventhVal"
 							}`)),
 						},
 					},
@@ -523,6 +650,22 @@ func TestRunFunction(t *testing.T) {
 											}
 										]
 									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Multiple",
+										"minMatch": 0,
+										"maxMatch": 1,
+										"matchLabels": [
+											{
+											  "type": "FromEnvironmentFieldPath",
+												"key": "epd",
+												"valueFromFieldPath": "epd.name",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
 								}
 							]
 						}
@@ -614,6 +757,20 @@ func TestRunFunction(t *testing.T) {
 											{
 												"key": "epd",
 												"valueFromFieldPath": "spec.epd.name",
+												"fromFieldPathPolicy": "Optional"
+											}
+										]
+									}
+								},
+								{
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "FromEnvironmentFieldPath",
+												"key": "epd",
+												"valueFromFieldPath": "edp.name",
 												"fromFieldPathPolicy": "Optional"
 											}
 										]
