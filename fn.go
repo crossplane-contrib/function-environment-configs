@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
-	v1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
@@ -315,7 +314,7 @@ func lessAs[T cmp.Ordered](a, b any) (bool, error) {
 	return cmp.Less(av, bv), nil
 }
 
-func buildRequirements(req *v1.RunFunctionRequest, in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
+func buildRequirements(req *fnv1.RunFunctionRequest, in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
 	resources := make(map[string]*fnv1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
@@ -345,11 +344,9 @@ func buildRequirements(req *v1.RunFunctionRequest, in *v1beta1.Input, xr *resour
 					}
 					matchLabels[selector.Key] = value
 				case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromEnvironemntFieldPath:
-					env, ok := request.GetContextKey(req, FunctionContextKeyEnvironment)
-					if !ok && !selector.FromFieldPathIsOptional() {
-						return nil, errors.Errorf("cannot get value from environment field path %q", *selector.ValueFromFieldPath)
-					}
+					env, _ := request.GetContextKey(req, FunctionContextKeyEnvironment)
 					value, err := fieldpath.Pave(env.GetStructValue().AsMap()).GetString(*selector.ValueFromFieldPath)
+
 					if err != nil {
 						if !selector.FromFieldPathIsOptional() {
 							return nil, errors.Wrapf(err, "cannot get value from environment field path %q", *selector.ValueFromFieldPath)
