@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: inputs.environmentconfigs.fn.crossplane.io
 spec:
   group: environmentconfigs.fn.crossplane.io
@@ -58,12 +58,10 @@ spec:
                   resources are stored in the composite resource at
                   `spec.environmentConfigRefs` and is only updated if it is null.
 
-
                   The list of references is used to compute an in-memory environment at
                   compose time. The data of all object is merged in the order they are
                   listed, meaning the values of EnvironmentConfigs with a larger index take
                   priority over ones with smaller indices.
-
 
                   The computed environment can be accessed in a composition using
                   `FromEnvironmentFieldPath` and `CombineFromEnvironment` patches.
@@ -153,6 +151,10 @@ spec:
                             sorted.
                           type: string
                       type: object
+                    toFieldPath:
+                      description: ToFieldPath specifies where in the environment
+                        to load the EnvironmentConfig(s).
+                      type: string
                     type:
                       default: Reference
                       description: |-
