@@ -5,7 +5,8 @@
 package v1beta1
 
 import (
-	commonv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
+	"github.com/crossplane/crossplane/apis/v2/core/v2"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -187,7 +188,7 @@ func (in *PatchPolicy) DeepCopyInto(out *PatchPolicy) {
 	}
 	if in.MergeOptions != nil {
 		in, out := &in.MergeOptions, &out.MergeOptions
-		*out = new(commonv1.MergeOptions)
+		*out = new(fieldpath.MergeOptions)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -207,7 +208,7 @@ func (in *Policy) DeepCopyInto(out *Policy) {
 	*out = *in
 	if in.Resolution != nil {
 		in, out := &in.Resolution, &out.Resolution
-		*out = new(commonv1.ResolutionPolicy)
+		*out = new(v2.ResolutionPolicy)
 		**out = **in
 	}
 }
