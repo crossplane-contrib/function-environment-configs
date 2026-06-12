@@ -189,9 +189,9 @@ const (
 	// EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath extracts
 	// the label value from a composite fieldpath.
 	EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath EnvironmentSourceSelectorLabelMatcherType = "FromCompositeFieldPath"
-	// EnvironmentSourceSelectorLabelMatcherTypeFromEnvironemntFieldPath extracts
+	// EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath extracts
 	// the label value from environment fieldpath.
-	EnvironmentSourceSelectorLabelMatcherTypeFromEnvironemntFieldPath EnvironmentSourceSelectorLabelMatcherType = "FromEnvironmentFieldPath"
+	EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath EnvironmentSourceSelectorLabelMatcherType = "FromEnvironmentFieldPath"
 
 	// EnvironmentSourceSelectorLabelMatcherTypeValue uses a literal as label
 	// value.

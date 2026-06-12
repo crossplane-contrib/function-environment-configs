@@ -366,7 +366,7 @@ func buildMatchLabels(matchers []v1beta1.EnvironmentSourceSelectorLabelMatcher, 
 				continue
 			}
 			matchLabels[selector.Key] = value
-		case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromEnvironemntFieldPath:
+		case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath:
 			value, err := fieldpath.Pave(env).GetString(*selector.ValueFromFieldPath)
 			if err != nil {
 				if !selector.FromFieldPathIsOptional() {
