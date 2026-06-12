@@ -61,10 +61,12 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		return rsp, nil
 	}
 
+	// Skip error check as the context key is not required and map conversion is nil safe.
+	envCtx, _ := request.GetContextKey(req, FunctionContextKeyEnvironment)
+	env := envCtx.GetStructValue().AsMap()
 	// Note(phisco): We need to compute the selectors even if we already
 	// requested them already at the previous iteration.
-	env, _ := request.GetContextKey(req, FunctionContextKeyEnvironment)
-	requirements, err := buildRequirements(in, oxr, env.GetStructValue().AsMap())
+	requirements, err := buildRequirements(in, oxr, env)
 	if err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot build requirements"))
 		return rsp, nil
