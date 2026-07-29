@@ -136,6 +136,20 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	f.log.Debug("Computed Composition environment", "environment", v)
 	response.SetContextKey(rsp, FunctionContextKeyEnvironment, structpb.NewStructValue(v))
 
+	// Note(phisco): The requirements we computed above were based on the
+	// environment we were given, which doesn't yet contain the
+	// EnvironmentConfigs we just resolved. Recompute them against the merged
+	// environment so that FromEnvironmentFieldPath selectors can match on
+	// values coming from EnvironmentConfigs resolved by this same step.
+	// Requirements that grew make Crossplane call us again with the newly
+	// requested resources.
+	requirements, err = buildRequirements(in, oxr, out.Object)
+	if err != nil {
+		response.Fatal(rsp, errors.Wrapf(err, "cannot build requirements"))
+		return rsp, nil
+	}
+	rsp.Requirements = requirements
+
 	return rsp, nil
 }
 
