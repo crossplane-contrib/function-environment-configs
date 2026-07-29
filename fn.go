@@ -61,9 +61,13 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		return rsp, nil
 	}
 
+	var env map[string]any
+	if envCtx, ok := request.GetContextKey(req, FunctionContextKeyEnvironment); ok {
+		env = envCtx.GetStructValue().AsMap()
+	}
 	// Note(phisco): We need to compute the selectors even if we already
 	// requested them already at the previous iteration.
-	requirements, err := buildRequirements(in, oxr)
+	requirements, err := buildRequirements(in, oxr, env)
 	if err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot build requirements"))
 		return rsp, nil
@@ -131,6 +135,20 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	}
 	f.log.Debug("Computed Composition environment", "environment", v)
 	response.SetContextKey(rsp, FunctionContextKeyEnvironment, structpb.NewStructValue(v))
+
+	// Note(phisco): The requirements we computed above were based on the
+	// environment we were given, which doesn't yet contain the
+	// EnvironmentConfigs we just resolved. Recompute them against the merged
+	// environment so that FromEnvironmentFieldPath selectors can match on
+	// values coming from EnvironmentConfigs resolved by this same step.
+	// Requirements that grew make Crossplane call us again with the newly
+	// requested resources.
+	requirements, err = buildRequirements(in, oxr, out.Object)
+	if err != nil {
+		response.Fatal(rsp, errors.Wrapf(err, "cannot build requirements"))
+		return rsp, nil
+	}
+	rsp.Requirements = requirements
 
 	return rsp, nil
 }
@@ -314,7 +332,7 @@ func lessAs[T cmp.Ordered](a, b any) (bool, error) {
 	return cmp.Less(av, bv), nil
 }
 
-func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Requirements, error) {
+func buildRequirements(in *v1beta1.Input, xr *resource.Composite, env map[string]any) (*fnv1.Requirements, error) {
 	resources := make(map[string]*fnv1.ResourceSelector, len(in.Spec.EnvironmentConfigs))
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
@@ -328,23 +346,11 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 				},
 			}
 		case v1beta1.EnvironmentSourceTypeSelector:
-			matchLabels := map[string]string{}
-			for _, selector := range config.Selector.MatchLabels {
-				switch selector.GetType() {
-				case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeValue:
-					// TODO validate value not to be nil
-					matchLabels[selector.Key] = *selector.Value
-				case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath:
-					value, err := fieldpath.Pave(xr.Resource.Object).GetString(*selector.ValueFromFieldPath)
-					if err != nil {
-						if !selector.FromFieldPathIsOptional() {
-							return nil, errors.Wrapf(err, "cannot get value from field path %q", *selector.ValueFromFieldPath)
-						}
-						continue
-					}
-					matchLabels[selector.Key] = value
-				}
+			matchLabels, err := buildMatchLabels(config.Selector.MatchLabels, xr, env)
+			if err != nil {
+				return nil, err
 			}
+
 			if len(matchLabels) == 0 {
 				continue
 			}
@@ -358,6 +364,38 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite) (*fnv1.Require
 		}
 	}
 	return &fnv1.Requirements{Resources: resources}, nil
+}
+
+func buildMatchLabels(matchers []v1beta1.EnvironmentSourceSelectorLabelMatcher, xr *resource.Composite, env map[string]any) (map[string]string, error) {
+	matchLabels := map[string]string{}
+
+	for _, selector := range matchers {
+		switch selector.GetType() {
+		case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeValue:
+			// TODO validate value not to be nil
+			matchLabels[selector.Key] = *selector.Value
+		case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath:
+			value, err := fieldpath.Pave(xr.Resource.Object).GetString(*selector.ValueFromFieldPath)
+			if err != nil {
+				if !selector.FromFieldPathIsOptional() {
+					return nil, errors.Wrapf(err, "cannot get value from composite field path %q", *selector.ValueFromFieldPath)
+				}
+				continue
+			}
+			matchLabels[selector.Key] = value
+		case v1beta1.EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath:
+			value, err := fieldpath.Pave(env).GetString(*selector.ValueFromFieldPath)
+			if err != nil {
+				if !selector.FromFieldPathIsOptional() {
+					return nil, errors.Wrapf(err, "cannot get value from environment field path %q", *selector.ValueFromFieldPath)
+				}
+				continue
+			}
+			matchLabels[selector.Key] = value
+		}
+	}
+
+	return matchLabels, nil
 }
 
 func mergeEnvConfigsData(configsByField map[string][]unstructured.Unstructured) (map[string]any, error) {

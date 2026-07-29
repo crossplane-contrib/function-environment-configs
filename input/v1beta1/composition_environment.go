@@ -189,6 +189,10 @@ const (
 	// EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath extracts
 	// the label value from a composite fieldpath.
 	EnvironmentSourceSelectorLabelMatcherTypeFromCompositeFieldPath EnvironmentSourceSelectorLabelMatcherType = "FromCompositeFieldPath"
+	// EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath extracts
+	// the label value from environment fieldpath.
+	EnvironmentSourceSelectorLabelMatcherTypeFromEnvironmentFieldPath EnvironmentSourceSelectorLabelMatcherType = "FromEnvironmentFieldPath"
+
 	// EnvironmentSourceSelectorLabelMatcherTypeValue uses a literal as label
 	// value.
 	EnvironmentSourceSelectorLabelMatcherTypeValue EnvironmentSourceSelectorLabelMatcherType = "Value"
@@ -199,7 +203,7 @@ const (
 type EnvironmentSourceSelectorLabelMatcher struct {
 	// Type specifies where the value for a label comes from.
 	// +optional
-	// +kubebuilder:validation:Enum=FromCompositeFieldPath;Value
+	// +kubebuilder:validation:Enum=FromCompositeFieldPath;FromEnvironmentFieldPath;Value
 	// +kubebuilder:default=FromCompositeFieldPath
 	Type EnvironmentSourceSelectorLabelMatcherType `json:"type,omitempty"`
 
