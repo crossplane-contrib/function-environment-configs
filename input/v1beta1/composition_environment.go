@@ -201,7 +201,15 @@ const (
 // An EnvironmentSourceSelectorLabelMatcher acts like a k8s label selector but
 // can draw the label value from a different path.
 type EnvironmentSourceSelectorLabelMatcher struct {
-	// Type specifies where the value for a label comes from.
+	// Type specifies where the value for a label comes from. With
+	// FromEnvironmentFieldPath, new resource requests are triggered if the
+	// referenced environment value changes upon resolving resources, meaning it
+	// can be initally absent and fetched into the environment by another entry
+	// within the same step. For it to work, fromFieldPathPolicy must be Optional
+	// as the value does not initially exist. Note that if some matchLabels do
+	// have values and others yet don't, only those with values will be filtered
+	// upon, potentially resulting in more resolved resources than desired.
+	//
 	// +optional
 	// +kubebuilder:validation:Enum=FromCompositeFieldPath;FromEnvironmentFieldPath;Value
 	// +kubebuilder:default=FromCompositeFieldPath
