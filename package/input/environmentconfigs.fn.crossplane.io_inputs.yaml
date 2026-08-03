@@ -109,8 +109,16 @@ spec:
                                 type: string
                               type:
                                 default: FromCompositeFieldPath
-                                description: Type specifies where the value for a
-                                  label comes from.
+                                description: |-
+                                  Type specifies where the value for a label comes from. With
+                                  FromEnvironmentFieldPath, new resource requests are triggered if the
+                                  referenced environment value changes upon resolving resources, meaning it
+                                  can be initially absent and fetched into the environment by another entry
+                                  within the same step. For it to work, fromFieldPathPolicy must be Optional
+                                  as the value does not initially exist. Using Optional, note that if some
+                                  matchLabels do have values and others yet don't, only those with values
+                                  will be filtered upon, potentially resulting in more resolved resources
+                                  than desired.
                                 enum:
                                 - FromCompositeFieldPath
                                 - FromEnvironmentFieldPath
