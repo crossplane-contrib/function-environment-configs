@@ -12,5 +12,7 @@ repository maintainers in their own `OWNERS.md` file.
 
 ## Maintainers
 * Philippe Scorsolini <p.scorsolini@gmail.com> ([phisco](https://github.com/phisco)
+* Alper Ulucinar <alper@upbound.io> ([ulucinar](https://github.com/ulucinar))
+* Sergen Yalcin <sergen@upbound.io> ([sergenyalcin](https://github.com/sergenyalcin))
 
 See [CODEOWNERS](./CODEOWNERS) for automatic PR assignment.
