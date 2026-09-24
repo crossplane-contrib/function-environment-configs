@@ -22,5 +22,10 @@ type Input struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// TTL for which a response can be cached in time.Duration format
+	// +kubebuilder:default="1m0s"
+	// +optional
+	TTL string `json:"ttl,omitempty"`
+
 	Spec InputSpec `json:"spec,omitempty"`
 }

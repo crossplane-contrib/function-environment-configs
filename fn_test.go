@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
@@ -23,6 +24,7 @@ func TestRunFunction(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		req *fnv1.RunFunctionRequest
+		ttl time.Duration
 	}
 	type want struct {
 		rsp *fnv1.RunFunctionResponse
@@ -1181,11 +1183,69 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"InputTTLOverride": {
+			reason: "The Function should honor a valid ttl value in the input",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"ttl": "5m"
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(5 * time.Minute)},
+				},
+			},
+		},
+		"InvalidInputTTLIgnored": {
+			reason: "The Function should ignore an invalid ttl value in the input",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"ttl": "not-a-duration"
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+				},
+			},
+		},
+		"FunctionDefaultTTLOverride": {
+			reason: "The Function should use the configured default ttl when input does not override it",
+			args: args{
+				ttl: 2 * time.Minute,
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input"
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(2 * time.Minute)},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			f := &Function{log: logging.NewNopLogger()}
+			ttl := tc.args.ttl
+			if ttl == 0 {
+				ttl = response.DefaultTTL
+			}
+			f := &Function{log: logging.NewNopLogger(), ttl: ttl}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 
 			diff := cmp.Diff(tc.want.rsp, rsp, cmpopts.AcyclicTransformer("toJsonWithoutResultMessages", func(r *fnv1.RunFunctionResponse) []byte {
