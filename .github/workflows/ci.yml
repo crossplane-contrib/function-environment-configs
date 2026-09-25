@@ -38,7 +38,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -58,7 +58,7 @@ jobs:
           version: ${{ env.GOLANGCI_VERSION }}
 
   unit-test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -76,7 +76,7 @@ jobs:
   # those packages to GitHub as a build artifact. The push job downloads those
   # artifacts and pushes them as a single multi-platform package.
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: true
       matrix:
@@ -130,7 +130,7 @@ jobs:
   # This job downloads the single-platform packages built by the build job, and
   # pushes them as a multi-platform package.
   push:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: ${{ github.event_name != 'pull_request' }}
     permissions:
       contents: read
