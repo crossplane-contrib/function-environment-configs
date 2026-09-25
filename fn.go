@@ -8,10 +8,12 @@ import (
 	"maps"
 	"reflect"
 	"sort"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,18 +38,26 @@ type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 
 	log logging.Logger
+	ttl time.Duration
 }
 
 // RunFunction runs the Function.
 func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) { //nolint:gocyclo // TODO(phisco): refactor
 	f.log.Debug("Running function", "tag", req.GetMeta().GetTag())
 
-	rsp := response.To(req, response.DefaultTTL)
+	rsp := response.To(req, f.ttl)
 
 	in := &v1beta1.Input{}
 	if err := request.GetInput(req, in); err != nil {
 		response.Fatal(rsp, errors.Wrapf(err, "cannot get Function input from %T", req))
 		return rsp, nil
+	}
+
+	if in.TTL != "" {
+		ttlDuration, err := time.ParseDuration(in.TTL)
+		if err == nil {
+			rsp.Meta.Ttl = durationpb.New(ttlDuration)
+		}
 	}
 
 	if in.Spec.EnvironmentConfigs == nil {

@@ -360,6 +360,40 @@ Multiple mode differs from Single mode in that it will match several `environmen
 < removed for brevity >
 ```
 
+### Response TTL
+
+TTL controls how long Crossplane can cache this function's response before
+re-invoking it. Values use Go [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration)
+syntax (for example `30s`, `5m`, `1h`).
+
+The function runtime accepts a global default via the `--ttl` CLI flag, which
+defaults to `1m0s`. Composition authors can override this per pipeline step
+using the top-level `ttl` field on the function input; when set to a valid
+duration, the composition input takes precedence over the CLI default. Invalid
+composition input values are ignored.
+
+```yaml
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      ttl: 5m
+      spec:
+        environmentConfigs:
+        - type: Reference
+          ref:
+            name: example-config
+```
+
+When running the function binary directly (for example during local development),
+pass the global default like this:
+
+```shell
+$ /function --ttl=2m
+```
+
 ## Developing this function
 
 This function uses [Go][go], [Docker][docker], and the [Crossplane CLI][cli] to
