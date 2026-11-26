@@ -13,7 +13,8 @@
 > [below](#migration-from-native-composition-environment) for more details.
 
 This [composition function][docs-functions] allows you to request
-`EnvironmentConfigs`, merge them in the requested order and return inject the
+`EnvironmentConfigs` or `NamespacedEnvironmentConfigs`, merge them in the
+requested order and return inject the
 computed `environment` into the `Context` at a well-known key,
 `apiextensions.crossplane.io/environment`, so that other functions such as
 [function-patch-and-transform] can access it.
@@ -334,6 +335,52 @@ Multiple mode differs from Single mode in that it will match several `environmen
           # 'sortByFieldPath' is an optional argument that sets the field path on how the pulled environmentConfigs is alphabetically sorted.
           # Only supported in 'Multiple' mode. Defaults to "metadata.name" if omitted.
           sortByFieldPath: metadata.name
+< composition code removed for brevity >
+```
+
+#### NamespacedEnvironmentConfig
+
+Specifying the `namespace` field targets `NamespacedEnvironmentConfig` instead
+of cluster-scoped `EnvironmentConfig`. Namespace can be specified in various
+ways.
+
+```yaml
+< composition code removed for brevity >
+  - step: environmentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+        # select NamespacedEnvironmentConfig by name,
+        # in the same namespace as the XR
+        - type: Reference
+          scope: Namespaced
+          ref:
+            name: example-config
+        # select NamespacedEnvironmentConfig by name and namespace
+        - type: Reference
+          scope: Namespaced
+          ref:
+            name: example-config
+          namespace:
+            type: Value
+            value: default
+        # select all NamespacedEnvironmentConfigs with matching
+        # labels, in the namespace specified in XR spec
+        - type: Selector
+          scope: Namespaced
+          selector:
+            mode: Multiple
+            matchLabels:  
+              - type: Value
+                key: example-label-a-key
+                value: example-label-a-value
+          namespace:
+            type: FromCompositeFieldPath
+            fromFieldPath: spec.source.namespace
 < composition code removed for brevity >
 ```
 

@@ -68,6 +68,29 @@ spec:
                 items:
                   description: EnvironmentSource selects a EnvironmentConfig resource.
                   properties:
+                    namespace:
+                      default:
+                        fromFieldPath: metadata.namespace
+                        type: FromCompositeFieldPath
+                      description: |-
+                        Namespace specifies the namespace in which to look up the
+                        NamespacedEnvironmentConfig resource(s) when `scope` is set to
+                        `Namespaced`.
+                      properties:
+                        fromFieldPath:
+                          description: FromFieldPath specifies the field path to look
+                            for the namespace.
+                          type: string
+                        type:
+                          description: Type specifies the source of the namespace.
+                          enum:
+                          - Value
+                          - FromCompositeFieldPath
+                          type: string
+                        value:
+                          description: Value is a literal value.
+                          type: string
+                      type: object
                     ref:
                       description: |-
                         Ref is a named reference to a single EnvironmentConfig.
@@ -79,6 +102,15 @@ spec:
                       required:
                       - name
                       type: object
+                    scope:
+                      default: Cluster
+                      description: |-
+                        Scope specifies if NamespacedEnvironmentConfigs or
+                        cluster-scoped EnvironmentConfigs should be selected.
+                      enum:
+                      - Namespaced
+                      - Cluster
+                      type: string
                     selector:
                       description: Selector selects EnvironmentConfig(s) via labels.
                       properties:

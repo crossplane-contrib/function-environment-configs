@@ -1183,6 +1183,252 @@ func TestRunFunction(t *testing.T) {
 				},
 			},
 		},
+		"NamespacedDefaultSelector": {
+			reason: "The Function should request a NamespacedEnvironmentConfig in the XR's namespace",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr",
+									"namespace": "foo"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"scope": "Namespaced",
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo",
+												"value": "bar"
+											}
+										]
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Requirements: &fnv1.Requirements{
+						Resources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "NamespacedEnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"foo": "bar",
+										},
+									},
+								},
+								Namespace: new("foo"),
+							},
+						},
+					},
+				},
+			},
+		},
+		"NamespacedFromValue": {
+			reason: "The Function should request a NamespacedEnvironmentConfig in specified namespace",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"scope": "Namespaced",
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo",
+												"value": "bar"
+											}
+										]
+									},
+									"namespace": {
+										"type": "Value",
+										"value": "default"
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Requirements: &fnv1.Requirements{
+						Resources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "NamespacedEnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"foo": "bar",
+										},
+									},
+								},
+								Namespace: new("default"),
+							},
+						},
+					},
+				},
+			},
+		},
+		"NamespacedFromCompositeFieldPath": {
+			reason: "The Function should request a NamespacedEnvironmentConfig in the namespace resolved from the composite field path",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr",
+									"namespace": "foo"
+								},
+								"spec": {
+									"ns": "baz"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"scope": "Namespaced",
+									"type": "Selector",
+									"selector": {
+										"mode": "Single",
+										"matchLabels": [
+											{
+												"type": "Value",
+												"key": "foo",
+												"value": "bar"
+											}
+										]
+									},
+									"namespace": {
+										"type": "FromCompositeFieldPath",
+										"fromFieldPath": "spec.ns"
+									}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Requirements: &fnv1.Requirements{
+						Resources: map[string]*fnv1.ResourceSelector{
+							"environment-config-0": {
+								ApiVersion: "apiextensions.crossplane.io/v1beta1",
+								Kind:       "NamespacedEnvironmentConfig",
+								Match: &fnv1.ResourceSelector_MatchLabels{
+									MatchLabels: &fnv1.MatchLabels{
+										Labels: map[string]string{
+											"foo": "bar",
+										},
+									},
+								},
+								Namespace: new("baz"),
+							},
+						},
+					},
+				},
+			},
+		},
+		"UnspecifiedNamespaceType": {
+			reason: "Namespace type must be specified",
+			args: args{
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{
+							Resource: resource.MustStructJSON(`{
+								"apiVersion": "test.crossplane.io/v1alpha1",
+								"kind": "XR",
+								"metadata": {
+									"name": "my-xr",
+									"namespace": "foo"
+								}
+							}`),
+						},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "environmentconfigs.fn.crossplane.io/v1beta1",
+						"kind": "Input",
+						"spec": {
+							"environmentConfigs": [
+								{
+									"scope": "Namespaced",
+									"type": "Reference",
+									"ref": {
+										"name": "foo"
+									},
+									"namespace": {}
+								}
+							]
+						}
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Results: []*fnv1.Result{
+						{
+							Severity: fnv1.Severity_SEVERITY_FATAL,
+							Target:   ptr.To(fnv1.Target_TARGET_COMPOSITE),
+						},
+					},
+				},
+			},
+		},
 		"InputTTLOverride": {
 			reason: "The Function should honor a valid ttl value in the input",
 			args: args{
