@@ -344,7 +344,7 @@ func lessAs[T cmp.Ordered](a, b any) (bool, error) {
 
 // environmentNamespace resolves the namespace in which to search for
 // NamespacedEnvironmentConfigs.
-func environmentNamespace(ni v1beta1.NamespaceInline, xr *resource.Composite) (*string, error) {
+func environmentNamespace(ni v1beta1.RefSelectorCommons, xr *resource.Composite) (*string, error) {
 	ns := ni.Namespace
 	if ns == nil {
 		// Apply default defined in API spec.
@@ -402,7 +402,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite, env map[string
 			var namespace *string
 			if *config.Scope == "Namespaced" {
 				var err error
-				namespace, err = environmentNamespace(config.Ref.NamespaceInline, xr)
+				namespace, err = environmentNamespace(config.Ref.RefSelectorCommons, xr)
 				if err != nil {
 					return nil, err
 				}
@@ -429,7 +429,7 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite, env map[string
 			var namespace *string
 			if *config.Scope == "Namespaced" {
 				var err error
-				namespace, err = environmentNamespace(config.Selector.NamespaceInline, xr)
+				namespace, err = environmentNamespace(config.Selector.RefSelectorCommons, xr)
 				if err != nil {
 					return nil, err
 				}

@@ -158,13 +158,14 @@ func (e *EnvironmentSource) GetType() EnvironmentSourceType {
 
 // An EnvironmentSourceReference references an EnvironmentConfig by it's name.
 type EnvironmentSourceReference struct {
+	RefSelectorCommons `json:",inline"`
+
 	// The name of the object.
 	Name string `json:"name"`
-
-	NamespaceInline `json:",inline"`
 }
 
-type NamespaceInline struct {
+// RefSelectorCommons specifies fields common to ref and selector.
+type RefSelectorCommons struct {
 	// Namespace specifies the namespace in which to look up the
 	// NamespacedEnvironmentConfig resource(s) when `scope` is set to
 	// `Namespaced`.
@@ -187,6 +188,8 @@ const (
 
 // An EnvironmentSourceSelector selects an EnvironmentConfig via labels.
 type EnvironmentSourceSelector struct {
+	RefSelectorCommons `json:",inline"`
+
 	// Mode specifies retrieval strategy: "Single" or "Multiple".
 	// +kubebuilder:validation:Enum=Single;Multiple
 	// +kubebuilder:default=Single
@@ -204,8 +207,6 @@ type EnvironmentSourceSelector struct {
 
 	// MatchLabels ensures an object with matching labels is selected.
 	MatchLabels []EnvironmentSourceSelectorLabelMatcher `json:"matchLabels,omitempty"`
-
-	NamespaceInline `json:",inline"`
 }
 
 // GetMode returns the mode of the EnvironmentSourceSelector, returning the default if not set.
