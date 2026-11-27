@@ -96,6 +96,13 @@ const (
 
 // EnvironmentSource selects a EnvironmentConfig resource.
 type EnvironmentSource struct {
+	// Scope specifies if NamespacedEnvironmentConfigs or
+	// cluster-scoped EnvironmentConfigs should be selected.
+	// +optional
+	// +kubebuilder:validation:Enum=Namespaced;Cluster
+	// +kubebuilder:default=Cluster
+	Scope *string `json:"scope,omitempty"`
+
 	// Type specifies the way the EnvironmentConfig is selected.
 	// Default is `Reference`
 	// +optional
@@ -117,6 +124,30 @@ type EnvironmentSource struct {
 	ToFieldPath *string `json:"toFieldPath,omitempty"`
 }
 
+// NamespaceSelector selects a namespace from a specified source.
+type NamespaceSelector struct {
+	// +kubebuilder:validation:Enum=Value;FromCompositeFieldPath
+	// Type specifies the source of the namespace.
+	Type *NamespaceSelectorType `json:"type,omitempty"`
+	// FromFieldPath specifies the field path to look for the namespace.
+	// +optional
+	FromFieldPath *string `json:"fromFieldPath,omitempty"`
+	// Value is a literal value.
+	// +optional
+	Value *string `json:"value,omitempty"`
+}
+
+// NamespaceSelectorType specifies the source of the namespace.
+type NamespaceSelectorType string
+
+const (
+	// NamespaceSelectorTypeFromCompositeFieldPath extracts the namespace from a
+	// composite fieldpath.
+	NamespaceSelectorTypeFromCompositeFieldPath NamespaceSelectorType = "FromCompositeFieldPath"
+	// NamespaceSelectorTypeValue uses a literal as namespace.
+	NamespaceSelectorTypeValue NamespaceSelectorType = "Value"
+)
+
 // GetType returns the type of the environment source, returning the default if not set.
 func (e *EnvironmentSource) GetType() EnvironmentSourceType {
 	if e == nil || e.Type == "" {
@@ -127,8 +158,20 @@ func (e *EnvironmentSource) GetType() EnvironmentSourceType {
 
 // An EnvironmentSourceReference references an EnvironmentConfig by it's name.
 type EnvironmentSourceReference struct {
+	RefSelectorCommons `json:",inline"`
+
 	// The name of the object.
 	Name string `json:"name"`
+}
+
+// RefSelectorCommons specifies fields common to ref and selector.
+type RefSelectorCommons struct {
+	// Namespace specifies the namespace in which to look up the
+	// NamespacedEnvironmentConfig resource(s) when `scope` is set to
+	// `Namespaced`.
+	// +optional
+	// +kubebuilder:default={type: "FromCompositeFieldPath", fromFieldPath: "metadata.namespace"}
+	Namespace *NamespaceSelector `json:"namespace,omitempty"`
 }
 
 // EnvironmentSourceSelectorModeType specifies amount of retrieved EnvironmentConfigs
@@ -145,6 +188,8 @@ const (
 
 // An EnvironmentSourceSelector selects an EnvironmentConfig via labels.
 type EnvironmentSourceSelector struct {
+	RefSelectorCommons `json:",inline"`
+
 	// Mode specifies retrieval strategy: "Single" or "Multiple".
 	// +kubebuilder:validation:Enum=Single;Multiple
 	// +kubebuilder:default=Single
