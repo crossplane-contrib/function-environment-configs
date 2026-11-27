@@ -1278,11 +1278,11 @@ func TestRunFunction(t *testing.T) {
 												"key": "foo",
 												"value": "bar"
 											}
-										]
-									},
-									"namespace": {
-										"type": "Value",
-										"value": "default"
+										],
+										"namespace": {
+											"type": "Value",
+											"value": "default"
+										}
 									}
 								}
 							]
@@ -1348,11 +1348,11 @@ func TestRunFunction(t *testing.T) {
 												"key": "foo",
 												"value": "bar"
 											}
-										]
-									},
-									"namespace": {
-										"type": "FromCompositeFieldPath",
-										"fromFieldPath": "spec.ns"
+										],
+										"namespace": {
+											"type": "FromCompositeFieldPath",
+											"fromFieldPath": "spec.ns"
+										}
 									}
 								}
 							]
@@ -1408,9 +1408,9 @@ func TestRunFunction(t *testing.T) {
 									"scope": "Namespaced",
 									"type": "Reference",
 									"ref": {
-										"name": "foo"
-									},
-									"namespace": {}
+										"name": "foo",
+										"namespace": {}
+									}
 								}
 							]
 						}

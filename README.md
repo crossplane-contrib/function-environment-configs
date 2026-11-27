@@ -340,9 +340,8 @@ Multiple mode differs from Single mode in that it will match several `environmen
 
 #### NamespacedEnvironmentConfig
 
-Specifying the `namespace` field targets `NamespacedEnvironmentConfig` instead
-of cluster-scoped `EnvironmentConfig`. Namespace can be specified in various
-ways.
+Specifying `scope: Namespaced` targets `NamespacedEnvironmentConfig` instead of
+cluster-scoped `EnvironmentConfig`. Namespace can be specified in various ways.
 
 ```yaml
 < composition code removed for brevity >
@@ -365,9 +364,9 @@ ways.
           scope: Namespaced
           ref:
             name: example-config
-          namespace:
-            type: Value
-            value: default
+            namespace:
+              type: Value
+              value: default
         # select all NamespacedEnvironmentConfigs with matching
         # labels, in the namespace specified in XR spec
         - type: Selector
@@ -378,9 +377,9 @@ ways.
               - type: Value
                 key: example-label-a-key
                 value: example-label-a-value
-          namespace:
-            type: FromCompositeFieldPath
-            fromFieldPath: spec.source.namespace
+            namespace:
+              type: FromCompositeFieldPath
+              fromFieldPath: spec.source.namespace
 < composition code removed for brevity >
 ```
 

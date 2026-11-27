@@ -344,40 +344,41 @@ func lessAs[T cmp.Ordered](a, b any) (bool, error) {
 
 // environmentNamespace resolves the namespace in which to search for
 // NamespacedEnvironmentConfigs.
-func environmentNamespace(config v1beta1.EnvironmentSource, xr *resource.Composite) (*string, error) {
-	if config.Namespace == nil {
+func environmentNamespace(ni v1beta1.NamespaceInline, xr *resource.Composite) (*string, error) {
+	ns := ni.Namespace
+	if ns == nil {
 		// Apply default defined in API spec.
-		config.Namespace = &v1beta1.NamespaceSelector{
+		ns = &v1beta1.NamespaceSelector{
 			Type:          new(v1beta1.NamespaceSelectorTypeFromCompositeFieldPath),
 			FromFieldPath: new("metadata.namespace"),
 		}
 	}
 
-	if config.Namespace.Type == nil {
+	if ns.Type == nil {
 		return nil, errors.New("namespace.type must be specified")
 	}
 
-	switch *config.Namespace.Type {
+	switch *ns.Type {
 	case v1beta1.NamespaceSelectorTypeFromCompositeFieldPath:
-		if config.Namespace.FromFieldPath == nil || *config.Namespace.FromFieldPath == "" {
+		if ns.FromFieldPath == nil || *ns.FromFieldPath == "" {
 			return nil, errors.New("namespace.fromFieldPath must not be empty when using namespace.type FromCompositeFieldPath")
 		}
 
-		namespace, err := fieldpath.Pave(xr.Resource.Object).GetString(*config.Namespace.FromFieldPath)
+		namespace, err := fieldpath.Pave(xr.Resource.Object).GetString(*ns.FromFieldPath)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not get composite field path %q", *config.Namespace.FromFieldPath)
+			return nil, errors.Wrapf(err, "could not get composite field path %q", *ns.FromFieldPath)
 		}
 		if namespace == "" {
-			return nil, errors.Errorf("resolved namespace from composite field path %q was empty", *config.Namespace.FromFieldPath)
+			return nil, errors.Errorf("resolved namespace from composite field path %q was empty", *ns.FromFieldPath)
 		}
 		return &namespace, nil
 	case v1beta1.NamespaceSelectorTypeValue:
-		if config.Namespace.Value == nil || *config.Namespace.Value == "" {
+		if ns.Value == nil || *ns.Value == "" {
 			return nil, errors.New("namespace.value must not be empty when using namespace.type Value")
 		}
-		return config.Namespace.Value, nil
+		return ns.Value, nil
 	default:
-		return nil, errors.Errorf("unsupported namespace type %q", *config.Namespace.Type)
+		return nil, errors.Errorf("unsupported namespace type %q", *ns.Type)
 	}
 }
 
@@ -386,19 +387,27 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite, env map[string
 	for i, config := range in.Spec.EnvironmentConfigs {
 		extraResName := fmt.Sprintf("environment-config-%d", i)
 
-		var namespace *string
+		if config.Scope == nil {
+			// Apply default defined in API spec.
+			config.Scope = new("Cluster")
+		}
+
 		kind := "EnvironmentConfig"
-		if config.Scope != nil && *config.Scope == "Namespaced" {
+		if *config.Scope == "Namespaced" {
 			kind = "NamespacedEnvironmentConfig"
-			ns, err := environmentNamespace(config, xr)
-			if err != nil {
-				return nil, err
-			}
-			namespace = ns
 		}
 
 		switch config.Type {
 		case v1beta1.EnvironmentSourceTypeReference, "":
+			var namespace *string
+			if *config.Scope == "Namespaced" {
+				var err error
+				namespace, err = environmentNamespace(config.Ref.NamespaceInline, xr)
+				if err != nil {
+					return nil, err
+				}
+			}
+
 			resources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       kind,
@@ -416,6 +425,16 @@ func buildRequirements(in *v1beta1.Input, xr *resource.Composite, env map[string
 			if len(matchLabels) == 0 {
 				continue
 			}
+
+			var namespace *string
+			if *config.Scope == "Namespaced" {
+				var err error
+				namespace, err = environmentNamespace(config.Selector.NamespaceInline, xr)
+				if err != nil {
+					return nil, err
+				}
+			}
+
 			resources[extraResName] = &fnv1.ResourceSelector{
 				ApiVersion: "apiextensions.crossplane.io/v1beta1",
 				Kind:       kind,

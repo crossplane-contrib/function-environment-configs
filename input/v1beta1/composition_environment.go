@@ -103,13 +103,6 @@ type EnvironmentSource struct {
 	// +kubebuilder:default=Cluster
 	Scope *string `json:"scope,omitempty"`
 
-	// Namespace specifies the namespace in which to look up the
-	// NamespacedEnvironmentConfig resource(s) when `scope` is set to
-	// `Namespaced`.
-	// +optional
-	// +kubebuilder:default={type: "FromCompositeFieldPath", fromFieldPath: "metadata.namespace"}
-	Namespace *NamespaceSelector `json:"namespace,omitempty"`
-
 	// Type specifies the way the EnvironmentConfig is selected.
 	// Default is `Reference`
 	// +optional
@@ -167,6 +160,17 @@ func (e *EnvironmentSource) GetType() EnvironmentSourceType {
 type EnvironmentSourceReference struct {
 	// The name of the object.
 	Name string `json:"name"`
+
+	NamespaceInline `json:",inline"`
+}
+
+type NamespaceInline struct {
+	// Namespace specifies the namespace in which to look up the
+	// NamespacedEnvironmentConfig resource(s) when `scope` is set to
+	// `Namespaced`.
+	// +optional
+	// +kubebuilder:default={type: "FromCompositeFieldPath", fromFieldPath: "metadata.namespace"}
+	Namespace *NamespaceSelector `json:"namespace,omitempty"`
 }
 
 // EnvironmentSourceSelectorModeType specifies amount of retrieved EnvironmentConfigs
@@ -200,6 +204,8 @@ type EnvironmentSourceSelector struct {
 
 	// MatchLabels ensures an object with matching labels is selected.
 	MatchLabels []EnvironmentSourceSelectorLabelMatcher `json:"matchLabels,omitempty"`
+
+	NamespaceInline `json:",inline"`
 }
 
 // GetMode returns the mode of the EnvironmentSourceSelector, returning the default if not set.
